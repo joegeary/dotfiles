@@ -1,0 +1,11 @@
+# ~/.gitconfig_work
+# =============================================================================
+# Work-specific Git configuration file.
+#
+# See https://git-scm.com/docs/git-config
+#
+# {{- /* This file supports Go's text/template language. */ -}}
+
+[user]
+    # Specify the email address of the author/committer.
+    email = "{{ .workemail }}"

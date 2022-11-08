@@ -205,8 +205,7 @@ if ($IsWindows) {
         $appList = $appList -replace "[\s].+", ""
         $apps = (
             "chezmoi",
-            "Delugia-Nerd-Font",
-            "Delugia-Nerd-Font-Complete",
+            "Cascadia-Code",
             "fzf",
             "less",
             "micro",

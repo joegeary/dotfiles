@@ -42,7 +42,7 @@ import_repo() {
     else
         uuid=$(uuidgen)
     fi
-    TMPFILE=$(mktemp /tmp/dotfiles."${uuid}".tar.gz) || exit 1
+    TMPFILE=$(mktemp /tmp/dotfiles.XXXXXXXXXX.tar.gz) || exit 1
     curl -s -L -o "$TMPFILE" "$repo" || exit 1
     chezmoi import --strip-components 1 --destination "$destination" "$TMPFILE" || exit 1
     rm -f "$TMPFILE"
@@ -183,7 +183,7 @@ setup_devtools() {
 
     # Install ASDF Versionn Manager
     # https://asdf-vm.com/
-    if ! command -v brew > /dev/null;; then
+    if ! command -v brew > /dev/null; then
         printf -- "%sInstalling/updating ASDF Extendable Version Manager...%s\n" "$BLUE" "$RESET"
         export ASDF_DIR="${ASDF_DIR:-$HOME/.asdf}" && (
             ASDF_NEW=false
@@ -254,7 +254,7 @@ main() {
     setup_color
     setup_prompts
     setup_applications
-    setup_devtools
+    #setup_devtools
     finalize_dotfiles
 
     printf -- "\n%sDone.%s\n\n" "$GREEN" "$RESET"

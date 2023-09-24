@@ -25,7 +25,7 @@ set -eufo pipefail
 {{ $sudo }}apt-get install -y {{ $packages | join " " }}
 {{ end -}}
 
-{{ if eq .osid "linux-arch }}
+{{ if eq .osid "linux-arch" }}
 {{ $sudo }}pacman -Syu --noconfirm {{ $packages | join " " }}
 {{ end -}}
 

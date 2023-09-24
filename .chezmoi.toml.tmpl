@@ -10,7 +10,7 @@
 # {{- /* This file supports Go's text/template language. */}}
 
 {{- $name := promptStringOnce . "user.git.name" "Name used for Git" }}
-{{- $email := promptStringOnce . "user.git.email "Email address used for Git" }}
+{{- $email := promptStringOnce . "user.git.email" "Email address used for Git" }}
 
 {{- $osID := .chezmoi.os -}}
 {{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "id")) -}}

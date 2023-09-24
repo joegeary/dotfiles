@@ -12,6 +12,12 @@
 # {{- $email := promptString "Git email address for the author/committer" }}
 # {{- $name := promptString "Git username for the author/committer" }}
 
+{{- $osID := .chezmoi.os -}}
+{{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "id")) -}}
+{{-   $osID = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
+{{- end -}}
+
 [data]
-    email = "{{ $email }}"
-    name = "{{ $name }}"
+    email = {{ $email | quote }}
+    name = {{ $name | quote }}
+    osid = {{ $osID | quote }}

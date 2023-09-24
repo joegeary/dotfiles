@@ -1,0 +1,32 @@
+{{ if eq .chezmoi.os "linux" -}}
+
+{{ $packages := list
+    "btop"
+    "curl"
+    "fzf"
+    "git"
+    "git-lfs"
+    "lazygit"
+    "neovim"
+    "nodejs"
+    "ripgrep"
+    "zsh" -}}
+
+{{ $sudo := "sudo " -}}
+{{ if eq .chezmoi.username "root" -}}
+{{   $sudo = "" -}}
+{{ end -}}
+
+#!/bin/sh
+set -eufo pipefail
+
+{{ if eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu" -}}
+{{ $sudo }}apt-get update
+{{ $sudo }}apt-get install -y {{ $packages | join " " }}
+{{ end -}}
+
+{{ if eq .osid "linux-arch }}
+{{ $sudo }}pacman -Syu --noconfirm {{ $packages | join " " }}
+{{ end -}}
+
+{{ end -}}

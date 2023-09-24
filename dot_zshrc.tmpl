@@ -90,25 +90,34 @@ HIST_STAMPS="yyyy-mm-dd"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-    # asdf                    # Integrates with ASDF extendable version manager
     colored-man-pages       # Adds colors to man pages
     common-aliases          # Aliases for many commonly used commands
-    cp                      # Secure `cpv` function that uses `rsync`
     docker                  # Aliases for [Docker](https://www.docker.com/)
-    docker-compose          # Aliases for [Docker-Compose](https://docs.docker.com/compose/)
     dotenv                  # Load project ENV variables from folder `.env` files
     extract                 # Multi-format decompression function `x`
+    fzf                     # Fuzzy auto-completion and key bindings
+    gh                      # GitHub CLI auto completion
     history                 # Aliases for `history` command
+    kubectl                 # Aliases and auto-completion for [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/)
     pj                      # Project Jump folder shortcuts
-    rsync                   # Aliases for `rsync` command
-    sublime                 # Aliases for [Sublime Text](https://www.sublimetext.com/)
+    ripgrep                 # Auto-completions for the [ripgrep](https://github.com/BurntSushi/ripgrep) search tool
     systemadmin             # Utilities for SysAdmins.
     z                       # Tracks your most used directories.
     zsh-autosuggestions     # Command suggestions based on history and completions (https://github.com/zsh-users/zsh-autosuggestions)
     zsh-syntax-highlighting # Fish shell like syntax highlighting (https://github.com/zsh-users/zsh-syntax-highlighting)
 )
-#    composer                # Aliases for [Composer](https://getcomposer.org/)
-#    symfony2                # Completion for [Symfony 2](https://symfony.com/)
+if [[ "{{ .chezmoi.osRelease.id }}" =~ ^arch$ ]]; then
+    plugins+=(
+        arch                # Aliases for Arch Linux
+    )
+fi
+
+if [[ "{{ .chezmoi.osRelease.id }}" =~ ^(debian|raspbian|ubuntu)$ ]]; then
+    plugins+=(
+        ubuntu                # Aliases for Ubuntu/Debian Linux
+    )
+fi
+
 if [[ "$OSTYPE" =~ ^darwin ]]; then
     plugins+=(
         osx                 # Utilities for macOS
@@ -136,8 +145,8 @@ export LANG=en_US.UTF-8
 # Set preferred editor for local and remote sessions.
 if [[ -n $SSH_CONNECTION ]]; then
     export EDITOR='vim'
-elif command -v mvim > /dev/null; then
-    export EDITOR='mvim';
+elif command -v nvim > /dev/null; then
+    export EDITOR='nvim';
 else
     export EDITOR='vim'
 fi
@@ -174,21 +183,8 @@ fi
 # Development environments
 # -----------------------------------------------------------------------------
 
-# Enable ASDF Extendable version manager (https://asdf-vm.com).
-# This should replace all language-secific version managers.
-ASDF_DIR="${ASDF_DIR:-$HOME/.asdf}"
-if [[ ! -d $ASDF_DIR ]] && type brew &> /dev/null; then
-    ASDF_DIR="$(brew --prefix asdf)"
-fi
-[ -s "$ASDF_DIR/asdf.sh" ] && \. "$ASDF_DIR/asdf.sh"
-
-# Provide ASDF completions (already loaded if using Homebrew).
-if [ -s "$ASDF_DIR/completions" ]; then
-    fpath=(${ASDF_DIR}/completions $fpath)
-    # initialise completions with ZSH's compinit
-    autoload -Uz compinit
-    compinit
-fi
+# Set Project Jump path (`pj <PROJECT_NAME>`)
+export PROJECT_PATHS=(~/work)
 
 # Enable Node Version Manager.
 export NVM_DIR="$HOME/.nvm"
@@ -197,31 +193,13 @@ export NVM_DIR="$HOME/.nvm"
 # Provide Node completions.
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-# Enable Python version management.
-if command -v pyenv > /dev/null; then
-    eval "$(pyenv init -)"
-fi
-
-# Load Ruby version management.
-if command -v rbenv > /dev/null; then
-    eval "$(rbenv init -)"
-fi
-
-# Add Ruby gems to PATH.
-if command -v ruby > /dev/null && command -v gem > /dev/null; then
-    PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:$PATH"
-fi
-
-# Provide Travis CI completions.
-[ -f "$HOME"/.travis/travis.sh ] && \. "$HOME"/.travis/travis.sh
-
 
 # Varia
 # -----------------------------------------------------------------------------
 
 # Point ripgrep to its configuration file.
 # See https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
-export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
 
 
 # Includes
@@ -240,4 +218,8 @@ fi
 # Load cross-compatible Bash custom code from separate file.
 if [ -f "$HOME"/.bash_extras ]; then
     \. "$HOME"/.bash_extras
+fi
+
+if [ -f /usr/bin/neofetch ]; then
+    neofetch
 fi

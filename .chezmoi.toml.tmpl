@@ -9,16 +9,15 @@
 #
 # {{- /* This file supports Go's text/template language. */}}
 
-{{- $name := promptStringOnce . "user.git.name" "Name used for Git" }}
-{{- $email := promptStringOnce . "user.git.email" "Email address used for Git" }}
+{{- $name := promptStringOnce . "name" "Name used for Git" }}
+{{- $email := promptStringOnce . "email" "Email address used for Git" }}
 
 {{- $osID := .chezmoi.os -}}
 {{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "id")) -}}
 {{-   $osID = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
 {{- end -}}
 
-[data.user.git]
+[data]
     email = {{ $email | quote }}
     name = {{ $name | quote }}
-[data]
     osid = {{ $osID | quote }}

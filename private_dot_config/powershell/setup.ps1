@@ -62,9 +62,35 @@ Remove-Variable -Name ("confirmation", "hereString")
 # Dependencies
 # -----------------------------------------------------------------------------
 
-# Install OhMyPosh via winget
-# TODO: Check before installing
+# Install Winget packages
 Invoke-Command -ScriptBlock { winget install JanDeDobbeleer.OhMyPosh }
+if ($IsWindows) {
+    if (Get-Command "winget" -ErrorAction "Ignore") {
+        Write-Host "Verifying the state of Winget..." -ForegroundColor $ColorInfo
+        Invoke-Command -ScriptBlock { winget --info }
+
+        # Install any missing apps.
+        $appList = Invoke-Command -ScriptBlock { winget list }
+        $apps = (
+            "Git.Git",
+            "DEVCOM.JetBrainsMonoNerdFont",
+            "twpayne.chezmoi",
+            "JanDeDobbeleer.OhMyPosh",
+            "nepnep.neofetch-win",
+            "gerardog.gsudo",
+            "junegunn.fzf",
+            "BurntSushi.ripgrep.MSVC",
+            "Starship.Starship"
+        )
+        $apps | ForEach-Object {
+            if (!$appList.Contains($_)) {
+                Invoke-Command -ScriptBlock { winget install -e --id  $_ }
+                count++
+            }
+        }
+    }
+}
+
 
 # Install NuGet package manager required to install WSL Interop and others.
 # See https://www.nuget.org/
@@ -171,59 +197,6 @@ $modules = @{
         }
         Get-Module -ListAvailable -Name $_.Name
         $count++
-    }
-}
-
-# Setup Scoop.
-# See https://github.com/lukesampson/scoop
-# -----------------------------------------------------------------------------
-
-if ($IsWindows) {
-    if (!(Get-Command "scoop" -ErrorAction "Ignore")) {
-        Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-    }
-    if (Get-Command "scoop" -ErrorAction "Ignore") {
-        Write-Host "Verifying the state of Scoop..." -ForegroundColor $ColorInfo
-        Get-Command -Name scoop -ErrorAction Stop
-        Invoke-Command -ScriptBlock { scoop checkup }
-
-        # Install any missing bucket.
-        $bucketList = Invoke-Command -ScriptBlock { scoop bucket list }
-        $buckets = (
-            "extras",
-            "nerd-fonts",
-            "twpayne"
-        )
-        $buckets | ForEach-Object {
-            if (!$bucketList.Contains($_)) {
-                Invoke-Command -ScriptBlock { scoop bucket add $_ }
-            }
-        }
-
-        # Install any missing app.
-        $appList = Invoke-Command -ScriptBlock { scoop export }
-        $appList = $appList -replace "[\s].+", ""
-        $apps = (
-            "chezmoi",
-            "Cascadia-Code",
-            "fzf",
-            "less",
-            "micro",
-            "nano",
-            "neofetch",
-            "ntop",
-            "ripgrep",
-            "starship",
-            "sudo",
-            "wget",
-            "winfetch"
-        )
-        $apps | ForEach-Object {
-            if (!$appList.Contains($_)) {
-                Invoke-Command -ScriptBlock { scoop install $_ }
-                $count++
-            }
-        }
     }
 }
 

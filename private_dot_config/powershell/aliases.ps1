@@ -44,6 +44,7 @@ Set-Alias -Name "mirror" -Value Copy-ItemMirror -Description "Makes an exact cop
 if (!(Get-Command "touch" -ErrorAction "Ignore")) {
     Set-Alias -Name "touch" -Value New-ItemEmpty -Description "Creates an empty file or updates its timestamp."
 }
+Set-Alias -Name "df" -Value Get-Volume -Description "Shows disk volume information."
 
 # General
 # -----------------------------------------------------------------------------
@@ -57,8 +58,6 @@ Set-Alias -Name "hs" -Value "Search-HistorySession" -Description "Displays/Searc
 Set-Alias -Name "mkcd" -Value New-ItemSetLocation -Description "Makes a directory and change to it."
 Set-Alias -Name "take" -Value New-ItemSetLocation -Description "Makes a directory and change to it."
 Set-Alias -Name "repeat" -Value Invoke-RepeatCommand -Description "Repeats a command x times."
-#Set-Alias -Name "reload" -Value Start-Shell
-#Set-Alias -Name "resource" -Value Import-Profile
 
 # Time
 # -----------------------------------------------------------------------------
@@ -128,7 +127,7 @@ Set-Alias -Name "chrome" -Value Start-Chrome -Description "Opens in Google Chrom
 Set-Alias -Name "edge" -Value Start-Edge -Description "Opens in Microsoft Edge."
 Set-Alias -Name "firefox" -Value Start-Firefox -Description "Opens in Mozilla Firefox."
 Set-Alias -Name "iexplore" -Value Start-InternetExplorer -Description "Opens in Internet Explorer."
-Set-Alias -Name "opera" -Value Start-Opera -Description "Opens in Opera."
+Set-Alias -Name "vivaldi" -Value Start-Vivaldi -Description "Opens in Vivaldi."
 if ($IsMacOS) {
     Set-Alias -Name "safari" -Value Start-Safari -Description "Opens in Safari."
 }
@@ -165,12 +164,9 @@ Set-Alias -Name "powershellconf" -Value Set-LocationPowershellConf -Description 
 
 # Custom paths
 # -----------------------------------------------------------------------------
+Set-Alias -Name "work" -Value Set-LocationWork -Description "Navigates to Work directory."
 Set-Alias -Name "repos" -Value Set-LocationWork -Description "Navigates to Work directory."
 Set-Alias -Name "cdw" -Value Set-LocationWork -Description "Navigates to Work directory."
-Set-Alias -Name "oncourse" -Value Set-LocationOnCourse -Description "Navigates to OnCourse Work directory."
-Set-Alias -Name "cdo" -Value Set-LocationOnCourse -Description "Navigates to OnCourse Work directory."
-Set-Alias -Name "cdt" -Value Set-LocationThayer -Description "Navigates to Thayer Work directory."
-Set-Alias -Name "thayer" -Value Set-LocationThayer -Description "Navigates to Thayer Work directory."
 
 # Varia
 # -----------------------------------------------------------------------------

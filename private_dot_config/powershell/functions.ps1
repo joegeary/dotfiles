@@ -635,7 +635,6 @@ function New-ItemEmpty {
     }
 }
 
-
 # General
 # -----------------------------------------------------------------------------
 
@@ -1519,7 +1518,6 @@ function Search-Command {
     Get-Command $Command -ErrorAction SilentlyContinue
 }
 
-
 # Applications
 # -----------------------------------------------------------------------------
 
@@ -1614,20 +1612,20 @@ function Start-InternetExplorer {
     Start-Process "iexplore" $args
 }
 
-function Start-Opera {
+function Start-Vivaldi {
     <#
     .SYNOPSIS
-        Opens in Opera.
+        Opens in Vivaldi.
     .INPUTS
         System.String
     .OUTPUTS
         None
     .LINK
-        https://www.opera.com/
+        https://www.vivaldi.com/
     #>
-    $process = "opera"
+    $process = "vivaldi"
     if ($IsMacOS) {
-        $process = "/Applications/Opera.app/Contents/MacOS/Opera"
+        $process = "/Applications/Vivaldi.app/Contents/MacOS/Vivaldi"
     }
     Start-Process $process $args
 }
@@ -2188,66 +2186,6 @@ function Set-LocationWork {
 
     begin {
         $path = Convert-Path -Path "~\Work"
-        Write-Verbose "Destination set to $path"
-    }
-
-    process {
-        if ($PSCmdlet.ShouldProcess($path, 'Go to directory')) {
-            Write-Verbose "Navigating to $path"
-            Set-Location $path
-        }
-    }
-}
-
-function Set-LocationOnCourse {
-    <#
-    .SYNOPSIS
-        Navigates to OnCourse directory.
-    .INPUTS
-        None
-    .OUTPUTS
-        None
-    .LINK
-        Set-Location
-    #>
-    [CmdletBinding(
-        SupportsShouldProcess = $true,
-        ConfirmImpact = 'Low'
-    )]
-    param()
-
-    begin {
-        $path = Convert-Path -Path "~\Work\OnCourse"
-        Write-Verbose "Destination set to $path"
-    }
-
-    process {
-        if ($PSCmdlet.ShouldProcess($path, 'Go to directory')) {
-            Write-Verbose "Navigating to $path"
-            Set-Location $path
-        }
-    }
-}
-
-function Set-LocationThayer {
-    <#
-    .SYNOPSIS
-        Navigates to Thayer directory.
-    .INPUTS
-        None
-    .OUTPUTS
-        None
-    .LINK
-        Set-Location
-    #>
-    [CmdletBinding(
-        SupportsShouldProcess = $true,
-        ConfirmImpact = 'Low'
-    )]
-    param()
-
-    begin {
-        $path = Convert-Path -Path "~\Work\Thayer"
         Write-Verbose "Destination set to $path"
     }
 

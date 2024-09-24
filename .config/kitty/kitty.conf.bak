@@ -1,0 +1,37 @@
+#font_family      CaskaydiaCove Nerd Font Mono
+font_family      JetBrainsMono NF
+bold_font        JetBrainsMono NF Bold
+italic_font      JetBrainsMono NF Italic
+bold_italic_font JetBrainsMono NF Bold Italic
+
+font_size 10
+window_padding_width 10 
+include themes/theme.conf
+background_opacity 0.90
+hide_window_decorations yes
+confirm_os_window_close 0
+remember_window_size no
+
+map shift+enter send_text all \x1b[13;2u
+map ctrl+enter send_text all \x1b[13;5u
+
+#foreground   #cdd6f4
+#background   #1e1e2e
+#cursor       #b7bac5
+
+#color0       #0a0c12
+#color8       #808289
+#color1       #525568
+#color9       #525568
+#color2       #5E6276
+#color10      #5E6276
+#color3       #63677B
+#color11      #63677B
+#color4       #6F7489
+#color12      #6F7489
+#color5       #7C8299
+#color13      #7C8299
+#color6       #7F86A0
+#color14      #7F86A0
+#color7       #b7bac5
+#color15      #b7bac5

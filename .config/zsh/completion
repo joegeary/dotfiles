@@ -1,0 +1,18 @@
+#!/usr/bin/env zsh
+
+# Include hidden files in autocomplete
+_comp_options+=(globdots)
+
+# Completion for other programs
+fpath=($HOME/.config/zsh/completions $fpath)
+
+# Load completions
+autoload -U compinit && compinit
+zinit cdreplay -q
+
+# Completion styling
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'    # case-insensitive completions
+zstyle ':completion:*' list-colors "{(s.:.)LS_COLORS}"     # use colors in completions similar to ls --colors
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+

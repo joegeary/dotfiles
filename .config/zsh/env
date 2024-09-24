@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+export XDG_CONFIG_HOME=$HOME/.config
+export XDG_DATA_HOME=$HOME/.local/share
+
+export PAGER=less
+
+# PATH
+export PATH=/home/joe/.cargo/bin:$PATH # Rust programs
+export PATH=/home/joe/.local/bin:$PATH # User installed programs
+
+# Set Neovim as default editor
+if [[ -n $SSH_CONNECTION ]]; then
+  export EDITOR='vim'
+else
+  export EDITOR='nvim'
+fi
+
+# Set default browser
+export BROWSER='firefox'
+
+# Use Neovim as man pager
+export MANPAGER="nvim +Man!"
+export MANWIDTH=99
+
+# Customize spelling correction prompt
+export SPROMPT="zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]?"
+
+# Remove / from WORDCHARS
+export WORDCHARS=${WORDCHARS//[\/]/}
+
+# less
+export LESSOPEN="| highlight %s -O truecolor -s darkplus --force -l"
+export LESS="-R -M -i -j5"
+
+# import any variables in the ~/.zprofile (not checked into source control)
+if [ -f /home/joe/.zprofile ]; then
+  source /home/joe/.zprofile
+fi

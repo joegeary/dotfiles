@@ -1,0 +1,4 @@
+bindkey "^[[1~" beginning-of-line
+bindkey "^[[4~" end-of-line
+bindkey '^u' history-search-backward
+bindkey '^d' history-search-forward

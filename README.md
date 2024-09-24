@@ -1,26 +1,66 @@
 <h1 align="center">
-    <a name="top" title="dotfiles">~/.&nbsp;📄</a><br/>Cross-platform, cross-shell dotfiles<br/> <sup><sub>powered by  <a href="https://www.chezmoi.io/">chezmoi</a> 🏠</sub></sup>
+    <a name="top" title="dotfiles">~/.&nbsp;📄</a><br/><sup><sub>Cross-platform, cross-shell dotfiles</sub></sup>
 </h1>
 
-Universal command set and colorful shell configurations for Bash, Zsh and Powershell, compatible with Linux, Windows and MacOS, all managed easily using [chezmoi](https://github.com/twpayne/chezmoi).
+> [!WARNING]
+> If you want to give these dotfiles a try, you should first fork this repository, review the code, and remove things you don’t want or need. Don’t blindly use my settings unless you know what that entails. Use at your own risk!
 
+## Requirements
 
-## Getting started
+### System
 
-You can install chezmoi and the dotfiles on a new, empty machine with a single command:
+OS - Arch Linux
+Desktop - i3 Window Manager (polybar, rofi, dunst, swaylock, wlogout)
+Terminal - Kitty
+Shell - zsh w/ starship prompt
 
-```bash
-# curl
-$ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply joegeary
+### Tools
 
-# wget
-sh -c "$(wget -qO- get.chezmoi.io)" -- init --apply joegeary
+Configuration is included for:
+
+- btop
+- dunst
+- i3
+- k9s
+- kitty
+- lazydocker
+- lazygit
+- neofetch
+- neovim
+- picom
+- polybar
+- ranger
+- rofi
+- starship
+- swaylock
+- tmux
+- wlogout
+- zsh
+
+### Additional Tools
+
+These tools are also required in order to use the dotfiles to its full capacity
+
+- fzf
+- newsboat
+- playerctl
+- zoxide
+
+## Installation
+
+First, clone the repository into your $HOME directory using git
+
+```sh
+git clone git@github.com/joegeary/dotfiles.git ~/dotfiles
+cd ~/dotfiles
 ```
 
-As well as the `curl | sh` installation, you can [install chezmoi with your favorite package manager.](https://www.chezmoi.io/install/)
+Then use GNU stow to create the symlinks
 
-Update your dotfiles by running:
-
-```bash
-$ chezmoi update
+```sh
+stow .
 ```
+
+## Usage
+
+Make changes in the ~/dotfiles directory and then run `stow .` in order to sync the changes to the home directory. Changes can then be committed to the git repository.

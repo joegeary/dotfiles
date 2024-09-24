@@ -1,0 +1,18 @@
+#!/usr/bin/env zsh
+
+#alias ls='ls --color'
+#alias ll='ls -al --color'
+alias l='eza -l  --icons --color'
+alias ls='eza -1  --icons --color'
+alias ll='eza -la --icons'
+alias ld='eza -lD --icons'
+
+alias diff="diff --color=auto"
+alias grep="grep --color=auto"
+alias chmod="chmod --preserve-root -v"
+alias chown="chown --preserve-root -v"
+
+alias c="clear"
+alias ka="killall"
+alias du='dust'
+alias k='kubectl'

@@ -1,0 +1,48 @@
+k9s:
+  refreshRate: 2
+  maxConnRetry: 5
+  enableMouse: false
+  enableImageScan: false
+  headless: false
+  logoless: true
+  crumbsless: false
+  readOnly: false
+  noExitOnCtrlC: false
+  noIcons: false
+  shellPod:
+    image: busybox:1.35.0
+    namespace: default
+    limits:
+      cpu: 100m
+      memory: 100Mi
+  logger:
+    tail: 100
+    buffer: 5000
+    sinceSeconds: -1
+    fullScreenLogs: false
+    textWrap: false
+    showTime: false
+  currentContext: admin@production
+  currentCluster: production
+  keepMissingClusters: false
+  clusters:
+    production:
+      namespace:
+        active: default
+        lockFavorites: false
+        favorites:
+          - default
+      view:
+        active: po
+      featureGates:
+        nodeShell: false
+      portForwardAddress: localhost
+  thresholds:
+    cpu:
+      critical: 90
+      warn: 70
+    memory:
+      critical: 90
+      warn: 70
+  screenDumpDir: /tmp/k9s-screens-joe
+  disablePodCounting: false

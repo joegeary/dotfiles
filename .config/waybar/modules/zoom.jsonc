@@ -1,0 +1,9 @@
+{
+  "custom/zoom": {
+    "exec": "~/.config/waybar/scripts/zoom-status.sh check",
+    "tooltip": true,
+    "format": "{}",
+    "interval": 5,
+    "return-type": "json"
+  }
+}

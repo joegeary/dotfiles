@@ -18,6 +18,7 @@ $kubernetes\
 [](surface0)\
 $time\
 \n$character"""
+command_timeout = 3600
 
 [character]
 success_symbol = "[ ](fg:sky)"

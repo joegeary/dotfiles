@@ -1,0 +1,9 @@
+{
+  "custom/launcher": {
+    "exec": "echo '{\"text\": \" 󰍜 \", \"tooltip\":\"App Launcher\"}'",
+    "return-type": "json",
+    "on-click": "~/.config/hypr/scripts/rofi.sh app",
+    "min-length": 3,
+    "max-length": 3
+  }
+}

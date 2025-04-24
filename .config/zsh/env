@@ -6,8 +6,9 @@ export XDG_DATA_HOME=$HOME/.local/share
 export PAGER=less
 
 # PATH
-export PATH=/home/joe/.cargo/bin:$PATH # Rust programs
-export PATH=/home/joe/.local/bin:$PATH # User installed programs
+export PATH=/home/joe/.cargo/bin:$PATH     # Rust programs
+export PATH=/home/joe/.local/bin:$PATH     # User installed programs
+export PATH=/home/joe/.local/scripts:$PATH # User scripts
 
 # Set Neovim as default editor
 if [[ -n $SSH_CONNECTION ]]; then

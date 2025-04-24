@@ -1,0 +1,11 @@
+- waybar modules
+  - Zoom onair (https://www.openhue.io/cli/commands/lights)
+  - network (https://github.com/HarHarLinks/wireguard-rofi-waybar/tree/main)
+  - bluetooth
+- scratchpad  (https://medium.com/@mynameised/how-to-use-special-work-spaces-scratchpad-in-hyprland-linux-3d7bb90ca145)
+  https://github.com/GothenburgBitFactory/taskwarrior
+- tmux
+- lockscreen
+- login screen
+- zoom/steam notifications stealing focus
+- bluetooth headset mic not working

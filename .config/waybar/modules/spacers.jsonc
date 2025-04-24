@@ -1,0 +1,79 @@
+{
+  // <<--< Padding >-->>
+  "custom/paddw": {
+    "format": " ",
+    "tooltip": false
+  },
+  "custom/paddc": {
+    "format": " ",
+    "tooltip": false
+  },
+  // Left Arrows
+  "custom/left1": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left2": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left3": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left4": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left5": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left6": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left7": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/left8": {
+    "format": "",
+    "tooltip": false
+  },
+  // Right Arrows
+  "custom/right1": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/right2": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/right3": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/right4": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/right5": {
+    "format": "",
+    "tooltip": false
+  },
+  // Left Inverse
+  "custom/leftin1": {
+    "format": "",
+    "tooltip": false
+  },
+  "custom/leftin2": {
+    "format": "",
+    "tooltip": false
+  },
+  // Right Inverse
+  "custom/rightin1": {
+    "format": "",
+    "tooltip": false
+  }
+}

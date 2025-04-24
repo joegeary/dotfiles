@@ -5,5 +5,6 @@
 ^/README.*
 ^/LICENSE.*
 ^/COPYING
+^/INSTALL.*
 
-^/bootstrap.sh
+^/scripts

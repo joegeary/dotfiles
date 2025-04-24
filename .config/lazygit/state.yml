@@ -1,26 +1,21 @@
 lastupdatecheck: 0
 recentrepos:
+    - /home/joe/dotfiles
     - /home/joe/dotfiles/
     - /home/joe/work/devops
-    - /home/joe/work/db-deploy
     - /home/joe/work/oncourse-cli/
     - /home/joe/work/oncourse-connect/
     - /home/joe/work/oncourse-web/
     - /home/joe/work/dotnet-infrastructure/
     - /home/joe/work/oncourse-cli
-    - /home/joe/work/lti-tool
     - /home/joe/work/oncourse-connect
     - /home/joe/work/devops/
-    - /home/joe/work/lti/doatask
-    - /home/joe/work/oncourse-homework/
-    - /home/joe/work/oncourse-homework
     - /home/joe/work/oncourse-web
     - /home/joe/work/workflows
     - /home/joe/work/oncourse-systems
     - /home/joe/work/dotnet-infrastructure
-    - /home/joe/work/adventofcode
 startuppopupversion: 5
-lastversion: 0.44.0
+lastversion: 0.49.0
 customcommandshistory:
     - q
     - Fix warnings

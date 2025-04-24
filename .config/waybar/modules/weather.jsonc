@@ -1,0 +1,9 @@
+{
+  "custom/weather": {
+    "exec": "~/.config/waybar/scripts/weather.py ",
+    "tooltip": true,
+    "format": "{}",
+    "interval": 30,
+    "return-type": "json"
+  }
+}

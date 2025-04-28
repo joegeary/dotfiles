@@ -43,6 +43,7 @@ satty                                                  # Modern Screenshot Annot
 cliphist                                               # clipboard manager
 hyprsunset                                             # blue light filter
 hypridle                                               # idle daemon
+pyprland                                               # hyprland plugins
 
 # --------------------------------------------------- // Dependencies
 polkit-gnome                                           # authentication agent

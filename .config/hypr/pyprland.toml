@@ -1,0 +1,13 @@
+[pyprland]
+plugins = [
+  "scratchpads",
+  "magnify"
+]
+
+[scratchpads.term]
+animation = "fromTop"
+margin = 10
+force_monitor = "DP-3"
+command = "kitty --class kitty-dropdown"
+class = "kitty-dropdown"
+size = "75% 60%"

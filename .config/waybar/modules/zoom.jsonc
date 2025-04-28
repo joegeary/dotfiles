@@ -4,6 +4,8 @@
     "tooltip": true,
     "format": "{}",
     "interval": 5,
-    "return-type": "json"
+    "return-type": "json",
+    "min-length": 1,
+    "max-length": 1
   }
 }

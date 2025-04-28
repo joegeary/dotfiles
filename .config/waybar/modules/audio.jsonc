@@ -15,6 +15,7 @@
     "on-click": "~/.config/waybar/scripts/volume-control.sh -o m",
     "on-scroll-up": "~/.config/waybar/scripts/volume-control.sh -o i",
     "on-scroll-down": "~/.config/waybar/scripts/volume-control.sh -o d",
+    "on-click-right": "pavucontrol",
     "min-length": 6,
     "max-length": 6
   }

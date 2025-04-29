@@ -1,0 +1,53 @@
+{
+  "modules-left": [
+    "custom/launcher", // window icon
+    "custom/left1",
+    "hyprland/workspaces", // workspaces
+    "custom/right1",
+    "mpris" // media info
+  ],
+  "modules-center": [
+    "custom/paddc",
+    "custom/left2",
+    "custom/left3",
+    "custom/left4",
+    "custom/leftin1",
+    "custom/left5",
+    "custom/distro", // distro icon
+    "custom/right2",
+    "custom/rightin1",
+    "clock#time", // time
+    "custom/right3",
+    "clock#date", // date
+    "custom/right4",
+    "custom/weather",
+    "custom/right5"
+  ],
+  "modules-right": [
+    "custom/left6",
+    "custom/left7",
+    "custom/left8",
+    "custom/zoom", // zoom status
+    "custom/update", // system update
+    "tray",
+    "custom/leftin2",
+    "custom/power" // power button
+  ],
+  "include": [
+    "~/.config/waybar/modules/audio.jsonc",
+    "~/.config/waybar/modules/clock.jsonc",
+    "~/.config/waybar/modules/distro.jsonc",
+    "~/.config/waybar/modules/launcher.jsonc",
+    "~/.config/waybar/modules/media.jsonc",
+    "~/.config/waybar/modules/pomodoro.jsonc",
+    "~/.config/waybar/modules/power.jsonc",
+    "~/.config/waybar/modules/spacers.jsonc",
+    "~/.config/waybar/modules/sysmon.jsonc",
+    "~/.config/waybar/modules/tray.jsonc",
+    "~/.config/waybar/modules/update.jsonc",
+    "~/.config/waybar/modules/weather.jsonc",
+    "~/.config/waybar/modules/window.jsonc",
+    "~/.config/waybar/modules/workspaces.jsonc",
+    "~/.config/waybar/modules/zoom.jsonc"
+  ]
+}

@@ -1,5 +1,5 @@
 <h1 align="center">
-    <a name="top" title="dotfiles">~/.&nbsp;📄</a><br/><sup><sub>Cross-platform, cross-shell dotfiles</sub></sup>
+    <a name="top" title="dotfiles">~/.&nbsp;📄</a><br/><sup><sub>Dotfiles</sub></sup>
 </h1>
 
 > [!WARNING]

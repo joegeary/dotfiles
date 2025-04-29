@@ -1,10 +1,7 @@
-\.git
-\.gitignore
-\.gitmodules
-
-^/README.*
-^/LICENSE.*
-^/COPYING
-^/INSTALL.*
-
-^/scripts
+.git
+.gitignore
+.gitmodules
+.github/workflows
+README.md
+install
+.task

@@ -1,1 +1,13 @@
+# Direnv files
+.envrc
+
+# Git-crypt keys
+.keys/
+
+# Python cache files
 __pycache__
+*.py[cod]
+*$py.class
+
+# Todo file
+TODO

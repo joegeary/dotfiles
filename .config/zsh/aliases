@@ -2,10 +2,10 @@
 
 #alias ls='ls --color'
 #alias ll='ls -al --color'
-alias l='eza -l  --icons --color'
-alias ls='eza -1  --icons --color'
-alias ll='eza -la --icons'
-alias ld='eza -lD --icons'
+alias l='eza -l  --icons --color --classify=auto'
+alias ls='eza -1  --icons --color --classify=auto'
+alias ll='eza -la --icons --classify=auto'
+alias ld='eza -lD --icons --classify=auto'
 
 alias diff="diff --color=auto"
 alias grep="grep --color=auto"

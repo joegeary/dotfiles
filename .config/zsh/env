@@ -39,5 +39,5 @@ export LESS="-R -M -i -j5"
 
 # import any variables in the ~/.zprofile (not checked into source control)
 if [ -f /home/joe/.zprofile ]; then
-  source /home/joe/.zprofile
+  source $HOME/.zprofile
 fi

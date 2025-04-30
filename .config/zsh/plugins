@@ -27,7 +27,7 @@ zinit snippet OMZP::docker-compose
 zinit snippet OMZP::dotnet
 zinit snippet OMZP::fluxcd
 zinit snippet OMZP::fzf
-#zinit snippet OMZP::gh
+zinit snippet OMZP::gh
 zinit snippet OMZP::helm
 zinit snippet OMZP::node
 zinit snippet OMZP::npm

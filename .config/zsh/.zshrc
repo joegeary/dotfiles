@@ -1,8 +1,8 @@
 source ~/.config/zsh/general
+source ~/.config/zsh/env
 source ~/.config/zsh/plugins
 source ~/.config/zsh/completion
 source ~/.config/zsh/aliases
-source ~/.config/zsh/env
 source ~/.config/zsh/keybindings
 
 # Shell integrations

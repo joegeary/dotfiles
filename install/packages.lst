@@ -111,6 +111,7 @@ spicetify-cli                                          # cli to customize spotif
 # --------------------------------------------------- // Development
 git                                                    # version control
 lazygit                                                # TUI for git commands
+git-delta                                              # Highlighter for git, diff, grep
 neovim                                                 # Fork of Vim
 visual-studio-code-bin                                 # Visual Studio Code
 visual-studio-code-insiders-bin                        # Visual Studio Code (preview build)
@@ -127,7 +128,8 @@ docker-buildx                                          # extended build capabili
 lazydocker                                             # TUI for docker and docker-compose
 kubectl                                                # command line tool for working with Kubernetes
 k9s                                                    # TUI for k8s 
-fluxcd                                      
+helmfile
+fluxcd
 talosctl
 talhelper
 go-task                                                # task runner

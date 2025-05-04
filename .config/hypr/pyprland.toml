@@ -19,6 +19,7 @@ force_monitor = "DP-3"
 command = "kitty --class kitty-dropdown-taskmon bpytop"
 class = "kitty-dropdown-taskmon"
 size = "75% 60%"
+lazy = true
 
 [scratchpads.gpumon]
 animation = "fromTop"
@@ -27,3 +28,4 @@ force_monitor = "DP-3"
 command = "kitty --class kitty-dropdown-btop radeontop"
 class = "kitty-dropdown-gpumon"
 size = "75% 60%"
+lazy = true

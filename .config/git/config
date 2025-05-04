@@ -3,6 +3,8 @@
 
 [includeIf "gitdir:~/dev/"]
   path = ~/.config/git/config-dev
+[includeIf "gitdir:~/dotfiles/"]
+  path = ~/.config/git/config-dev
 
 [safe]
   directory = ~/dev
@@ -267,3 +269,5 @@
   subrepo = !sh -c 'git filter-branch --prune-empty --subdirectory-filter $1 master' -
   human = name-rev --name-only --refs=refs/heads/*
   ig = "!f() { gitignore \"$@\"; }; f"
+[user]
+	signingkey = 5EC4BE6DF79F37A3

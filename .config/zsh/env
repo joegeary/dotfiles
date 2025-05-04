@@ -37,6 +37,9 @@ export WORDCHARS=${WORDCHARS//[\/]/}
 export LESSOPEN="| highlight %s -O truecolor -s darkplus --force -l"
 export LESS="-R -M -i -j5"
 
+# gpg-agent
+export GPG_TTY=$(tty)
+
 # import any variables in the ~/.zprofile (not checked into source control)
 if [ -f /home/joe/.zprofile ]; then
   source $HOME/.zprofile

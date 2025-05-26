@@ -1,8 +1,6 @@
 {
   "modules-left": [
-    "custom/launcher", // window icon
     "custom/left1",
-    "hyprland/workspaces", // workspaces
     "custom/right1",
     "mpris" // media info
   ],
@@ -11,6 +9,7 @@
     "custom/left2",
     "custom/left3",
     "custom/left4",
+    "clock#date", // date
     "custom/leftin1",
     "custom/left5",
     "custom/distro", // distro icon
@@ -18,7 +17,6 @@
     "custom/rightin1",
     "clock#time", // time
     "custom/right3",
-    "clock#date", // date
     "custom/right4",
     "custom/weather",
     "custom/right5"
@@ -27,8 +25,6 @@
     "custom/left6",
     "custom/left7",
     "custom/left8",
-    "custom/zoom", // zoom status
-    "custom/update", // system update
     "tray",
     "custom/leftin2",
     "custom/power" // power button

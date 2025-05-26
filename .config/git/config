@@ -138,10 +138,10 @@
   mc = merge --continue
   ms = merge --skip
 
-  o = checkout
-  om = checkout master
-  ob = checkout -b
-  opr = !sh -c 'git fo pull/$1/head:pr-$1 && git o pr-$1'
+  co = checkout
+  com = checkout master
+  cob = checkout -b
+  copr = !sh -c 'git fo pull/$1/head:pr-$1 && git o pr-$1'
 
   pr = prune -v
 

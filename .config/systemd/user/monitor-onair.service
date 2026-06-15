@@ -1,0 +1,12 @@
+[Unit]
+Description=Monitor camera on-air status and toggle notifications
+After=pipewire.service mako.service
+
+[Service]
+Type=simple
+ExecStart=/home/joe/dotfiles/.local/bin/monitor-onair
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

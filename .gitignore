@@ -17,3 +17,12 @@ TODO
 
 # Personal files
 .config/git/config-*
+
+# Zsh completion cache (regenerated on login)
+.zcompdump*
+
+# Yazi temp/backup files
+.config/yazi/*.toml-*
+
+# tmux plugins (managed by TPM at ~/.tmux/plugins)
+.config/tmux/plugins/

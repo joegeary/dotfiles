@@ -16,3 +16,9 @@ alias c="clear"
 alias ka="killall"
 alias du='dust'
 alias k='kubectl'
+alias tui='taskwarrior-tui'
+
+alias cc='claude'
+alias ccc='claude --continue'
+alias ccd='claude --dangerously-skip-permissions'
+alias ccr='claude --resume'

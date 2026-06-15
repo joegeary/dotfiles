@@ -8,9 +8,10 @@ origin = top-right
 notification_limit = 8
 gap_size = 7
 frame_width = 2
-width = 300
-height = 100
+width = (0, 600)
+height = (0, 1000)
 follow = keyboard
+word_wrap = yes
 
 [urgency_low]
 background = "#24273A"

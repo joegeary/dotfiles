@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Configuration
+VPN_SESSION_NAME="vpn"
+CONFIG_PATH="/etc/openfortivpn/oncourse"
+
+# --- Function to check connection status ---
+is_connected() {
+  # Check if the tmux session exists and is running
+  tmux has-session -t "$VPN_SESSION_NAME" 2>/dev/null
+  return $?
+}
+
+# --- Main Logic ---
+
+if is_connected; then
+  ## DISCONNECT (Kill the tmux session)
+  echo "🔐 VPN session '$VPN_SESSION_NAME' is active. Disconnecting..."
+
+  # Kill the session, which terminates the openfortivpn process
+  tmux kill-session -t "$VPN_SESSION_NAME" 2>/dev/null
+
+  # Wait briefly and confirm
+  sleep 1
+  if ! is_connected; then
+    echo "✅ Disconnected successfully."
+  else
+    echo "❌ Failed to disconnect."
+  fi
+
+else
+  ## CONNECT (Create and attach to the tmux session)
+  echo "🔓 VPN is currently disconnected. Attempting to connect..."
+  echo "➡️ Creating tmux session '$VPN_SESSION_NAME'. You will be prompted for your OTP."
+  echo "   *** Remember the tmux detach key sequence: Ctrl+B then D ***"
+
+  # Create and attach to the session.
+  tmux new -d -s "$VPN_SESSION_NAME" /bin/bash
+
+  # The user must manually enter the OTP and then detach (Ctrl+B, D).
+  tmux send-keys -t "$VPN_SESSION_NAME" "sudo openfortivpn -c $CONFIG_PATH" C-m
+
+  echo "Connecting you to the new session..."
+  tmux attach -t "$VPN_SESSION_NAME"
+
+  # If the user detached successfully, run connection check
+  if is_connected; then
+    echo "✅ Connection initiated. Detached from session '$VPN_SESSION_NAME'."
+  else
+    echo "⚠️ Connection failed or session was closed."
+  fi
+fi

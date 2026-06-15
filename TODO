@@ -1,9 +1,7 @@
 - waybar modules
   - network (https://github.com/HarHarLinks/wireguard-rofi-waybar/tree/main)
-  - bluetooth
+  - bluetooth (https://github.com/e-tho/bzmenu)
 - tmux
-- login screen
-- bluetooth headset mic not working
 - taskwarrior
 - youtube-music (https://github.com/XNM1/linux-nixos-hyprland-config-dotfiles/tree/main/home/.config/YouTube%20Music)
 - hyprshader

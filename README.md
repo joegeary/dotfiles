@@ -5,46 +5,36 @@
 > [!WARNING]
 > If you want to give these dotfiles a try, you should first fork this repository, review the code, and remove things you don’t want or need. Don’t blindly use my settings unless you know what that entails. Use at your own risk!
 
-## Requirements
+```mint
+      ⠀⠀   🌸 System 🌸
+ -----------------------------------
 
-### System
+ ╭─ Distro  -> Arch Linux 
+ ├─ Editor  -> NeoVim + VS Code
+ ├─ Browser -> Firefox
+ ├─ Shell   -> ZSH
+ ├─ File Explorer -> Yazi
+ ├─ Music Player -> Spotify + Spicetify
+ ╰─ Resource Monitor -> Bpytop
 
-OS - Arch Linux
-Desktop - i3 Window Manager (polybar, rofi, dunst, swaylock, wlogout)
-Terminal - Kitty
-Shell - zsh w/ starship prompt
+ ╭─ Terminal -> Kitty
+ ├─ Prompt   -> Starship
+ ├─ Theme    -> Catppuccin-Macchiato
+ ├─ Icons    -> Colloid-teal-dark 
+ ├─ Font     -> JetBrainsMono Nerd Font
+ ╰─ Hotel    -> Trivago
 
-### Tools
+ ╭─ WM              -> Hyprland
+ ├─ Bar             -> Waybar
+ ├─ Notifications   -> Dunst
+ ├─ Launcher        -> Rofi 
+ ├─ Lock Screen     -> Hyprlock 
+ ├─ Wallpaper Manager -> Hyprpaper 
+ ├─ Display Manager -> Greetd + Tuigreet 
+ ╰─ Logout Menu     -> Wlogout
 
-Configuration is included for:
-
-- btop
-- dunst
-- i3
-- k9s
-- kitty
-- lazydocker
-- lazygit
-- neofetch
-- neovim
-- picom
-- polybar
-- ranger
-- rofi
-- starship
-- swaylock
-- tmux
-- wlogout
-- zsh
-
-### Additional Tools
-
-These tools are also required in order to use the dotfiles to its full capacity
-
-- fzf
-- newsboat
-- playerctl
-- zoxide
+                        
+```
 
 ## Installation
 

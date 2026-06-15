@@ -1,0 +1,11 @@
+#!/bin/bash
+
+pkg_name=$(yay -Qqe | fzf --multi --preview 'yay -Qi {1}' --preview-window=down:75%)
+
+if [[ -n "$pkg_name" ]]; then
+  yay -Rns --noconfirm "$pkg_name"
+  sudo updatedb
+
+  echo
+  gum spin --spinner "globe" --title "Done! Press any key to close..." -- bash -c 'read -n 1 -s'
+fi

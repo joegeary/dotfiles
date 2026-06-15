@@ -31,7 +31,7 @@ zinit snippet OMZP::gh
 zinit snippet OMZP::helm
 zinit snippet OMZP::node
 zinit snippet OMZP::npm
-zinit snippet OMZP::ssh
+# zinit snippet OMZP::ssh
 zinit snippet OMZP::sudo
 zinit snippet OMZP::thefuck
-zinit snippet OMZP::tmux
+# zinit snippet OMZP::tmux

@@ -1,10 +1,14 @@
 [include]
   path = ~/.config/git/themes/catppuccin.gitconfig
 
-[includeIf "gitdir:~/dev/"]
-  path = ~/.config/git/config-dev
-[includeIf "gitdir:~/dotfiles/"]
-  path = ~/.config/git/config-dev
+[user]
+  email = "joegeary@gmail.com"
+  name = "Joe Geary"
+; If you want to use a different email for work, uncomment the lines below
+; [includeIf "gitdir:~/dev/"]
+;   path = ~/.config/git/config-dev
+; [includeIf "gitdir:~/dotfiles/"]
+;   path = ~/.config/git/config-dev
 
 [safe]
   directory = ~/dev
@@ -236,6 +240,10 @@
   wp = show -p
   wr = show -p --no-color
 
+  wta = "!f() { git worktree add -b \"$1\" \"../$1\"; }; f"
+  wtr = "!f() { git worktree remove \"../$1\"; }; f"
+  wtl = "!f() { git worktree list; }; f"
+
   svnr = svn rebase
   svnd = svn dcommit
   svnl = svn log --oneline --show-commit
@@ -271,3 +279,5 @@
   ig = "!f() { gitignore \"$@\"; }; f"
 [user]
 	signingkey = 5EC4BE6DF79F37A3
+[push]
+	autoSetupRemote = true

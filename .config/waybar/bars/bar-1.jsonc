@@ -4,8 +4,8 @@
     "custom/left1",
     "hyprland/workspaces", // workspaces
     "custom/right1",
-    "custom/paddw",
-    "hyprland/window" // window title
+    "custom/paddw"
+    // "hyprland/window" // window title
   ],
   "modules-center": [
     "custom/paddc",

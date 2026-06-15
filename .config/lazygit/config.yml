@@ -4,7 +4,6 @@ gui:
   nerdFontsVersion: "3"
   border: rounded
   mouseEvents: false
-
   # Use the catppuccin macchiato theme
   theme:
     activeBorderColor:
@@ -26,10 +25,8 @@ gui:
       - "#cad3f5"
     searchingActiveBorderColor:
       - "#eed49f"
-
   authorColors:
     "*": "#b7bdf8"
-
 git:
   parseEmoji: true
   paging:

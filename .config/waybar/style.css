@@ -11,7 +11,7 @@
 
 /* <<--< Main Background >-->> */
 
-window#waybar > box {
+window#waybar>box {
   background-color: @main-bg;
   margin: 2px;
 }
@@ -31,6 +31,7 @@ tooltip {
   border-radius: 8px;
   border-color: @main-br;
 }
+
 tooltip label {
   color: @main-fg;
   font-weight: normal;
@@ -47,11 +48,13 @@ tooltip label {
   padding: 0 2px;
   transition: none;
 }
+
 #workspaces button:hover {
   color: @hover-fg;
   background: @hover-bg;
   text-shadow: none;
 }
+
 #workspaces button.active {
   color: @active-fg;
   background: @active-bg;
@@ -115,6 +118,7 @@ tooltip label {
   background: @main-bg;
   padding-left: 8px;
 }
+
 #custom-launcher:hover {
   color: @hover-fg;
 }
@@ -127,9 +131,11 @@ tooltip label {
   margin-bottom: 0;
   padding-left: 2px;
 }
+
 #workspaces {
   background: @workspaces;
 }
+
 #custom-right1 {
   color: @workspaces;
   background: @main-bg;
@@ -142,11 +148,13 @@ tooltip label {
 #custom-paddc {
   padding-right: 22px;
 }
+
 #custom-left2 {
   color: @cpuinfo;
   background: @main-bg;
   padding-left: 3px;
 }
+
 #custom-cpuinfo {
   background: @cpuinfo;
   padding-left: 1px;
@@ -160,14 +168,17 @@ tooltip label {
   background: @cpuinfo;
   padding-left: 3px;
 }
+
 #memory {
   background: @memory;
   padding-left: 1px;
   padding-right: 0;
 }
+
 #memory.warning {
   color: @warning;
 }
+
 #memory.critical {
   color: @critical;
 }
@@ -179,9 +190,11 @@ tooltip label {
   background: @memory;
   padding-left: 3px;
 }
+
 #cpu {
   background: @cpu;
 }
+
 #custom-leftin1 {
   color: @cpu;
   margin-bottom: -1px;
@@ -196,6 +209,7 @@ tooltip label {
   margin-bottom: -2px;
   padding-left: 3px;
 }
+
 #custom-distro {
   color: @distro-fg;
   background: @distro-bg;
@@ -203,6 +217,7 @@ tooltip label {
   padding: 0 0 0 3px;
   text-shadow: 0 0 1.5px rgba(0, 0, 0, 1);
 }
+
 #custom-right2 {
   color: @distro-bg;
   background: @main-bg;
@@ -216,11 +231,13 @@ tooltip label {
   color: @time;
   margin-bottom: -1px;
 }
+
 #clock.time {
   background: @time;
   margin-left: -2px;
   padding: 0 3px 0 5px;
 }
+
 #custom-right3 {
   color: @time;
   background: @date;
@@ -231,9 +248,11 @@ tooltip label {
 #clock.date {
   background: @date;
 }
+
 #clock.date:hover {
   color: @hover-fg;
 }
+
 #custom-right4 {
   color: @date;
   background: @weather;
@@ -244,6 +263,7 @@ tooltip label {
   color: @weather;
   background: @main-bg;
 }
+
 #custom-weather {
   font-weight: normal;
   color: @main-fg;
@@ -251,6 +271,7 @@ tooltip label {
   padding-right: 8px;
   padding-left: 8px;
 }
+
 #custom-weather:hover {
   color: @hover-fg;
 }
@@ -263,6 +284,7 @@ tooltip label {
   padding-right: 8px;
   padding-left: 8px;
 }
+
 #mpris:hover {
   color: @hover-fg;
 }
@@ -274,9 +296,11 @@ tooltip label {
   background: @main-bg;
   padding-left: 3px;
 }
+
 #pulseaudio {
   background: @pulseaudio;
 }
+
 #pulseaudio:hover {
   color: @hover-fg;
 }
@@ -288,10 +312,12 @@ tooltip label {
   background: @pulseaudio;
   padding-left: 2px;
 }
+
 #custom-pomodoro {
   background: @pomodoro;
 }
-#custom-pomodoro:hover { 
+
+#custom-pomodoro:hover {
   background: @tray;
 }
 
@@ -310,11 +336,13 @@ tooltip label {
 #custom-zoom {
   background: @tray;
 }
-#custom-zoom:hover { 
+
+#custom-zoom:hover {
   background: @tray;
 }
+
 #custom-zoom.onair {
-  color: @red;
+  color: #a55555;
 }
 
 #custom-network {
@@ -322,6 +350,7 @@ tooltip label {
   padding-right: 8px;
   background: @tray;
 }
+
 #custom-network:hover {
   color: @hover-fg;
 }
@@ -330,6 +359,7 @@ tooltip label {
   padding-right: 5px;
   background: @tray;
 }
+
 #bluetooth:hover {
   color: @hover-fg;
 }
@@ -338,6 +368,7 @@ tooltip label {
   padding-right: 8px;
   background: @tray;
 }
+
 #custom-update:hover {
   color: @hover-fg;
 }
@@ -349,6 +380,7 @@ tooltip label {
   background: @main-bg;
   margin-bottom: -1px;
 }
+
 #custom-power {
   color: @main-bg;
   background: @power;
@@ -358,6 +390,7 @@ tooltip label {
   margin: 2px 4px 2px 0;
   padding: 0 6px 0 9px;
 }
+
 #custom-power:hover {
   color: @hover-fg;
   background: @hover-bg;
@@ -435,6 +468,7 @@ tooltip label {
   border-radius: 8px;
   padding: 0 2px;
 }
+
 #workspaces button.active {
   padding: 0 6px;
 }

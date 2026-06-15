@@ -1,0 +1,94 @@
+# Runs fastfetch or onefetch depending on if a .git folder exists
+function show_fetch() {
+    if [[ -d .git ]]; then
+      onefetch
+    else
+      fastfetch
+    fi
+}
+
+function repo() {
+  local selected=$(fd '^\.git$' "${HOME}/dev" --type=directory --type=file --hidden --prune 2>/dev/null \
+    | sed "s|/\.git/\?$||" \
+    | sort \
+    | awk '{
+        for (p in seen) if (index($0, p "/") == 1) next
+        seen[$0] = 1
+        print
+      }' \
+    | sed "s|^${HOME}/dev/||" \
+    | fzf --preview "onefetch ${HOME}/dev/{}" --preview-window up)
+
+  if [[ -z "$selected" ]]; then
+    echo "Repository not found"
+    return
+  fi
+
+  local full_path="${HOME}/dev/$selected"
+  echo "Repository found locally, entering"
+  cd "$full_path" || return
+  if [[ -d .git ]]; then
+    echo "Fetching origin"
+    git fetch origin
+    onefetch
+  fi
+
+  create_tmux_session "$full_path"
+}
+
+function create_tmux_session() {
+  local RESULT="$1"
+  zoxide add "$RESULT" &>/dev/null
+  local FOLDER=$(basename "$RESULT")
+  local SESSION_NAME=$(echo "$FOLDER" | tr ' .:' '_')
+
+  if [ -d "$RESULT/.git" ]; then
+    SESSION_NAME+="_$(git -C "$RESULT" symbolic-ref --short HEAD 2>/dev/null)"
+  fi
+
+  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    tmux new-session -d -s "$SESSION_NAME" -c "$RESULT"
+  fi
+
+  if [ -z "$TMUX" ]; then
+    tmux attach -t "$SESSION_NAME"
+  else
+    tmux switch-client -t "$SESSION_NAME"
+  fi
+}
+
+# Function to kill a process via a fzf menu
+function pkill() {
+  ps aux |
+  fzf --height 40% \
+      --layout=reverse \
+      --header-lines=1 \
+      --prompt="Select process to kill: " \
+      --preview 'echo {}' \
+      --preview-window up:3:hidden:wrap \
+      --bind 'F2:toggle-preview' |
+  awk '{print $2}' |
+  xargs -r bash -c '
+    if ! kill "$1" 2>/dev/null; then
+      echo "Regular kill failed, attempting with sudo..."
+      sudo kill "$1" || echo "Failed to kill process $1" >&2
+    fi
+  ' --
+}
+
+# cpr - create a git worktree for a pull request
+# Usage: cpr <PR_NUMBER> [<REMOTE>]
+# Example: cpr 1234 origin
+# If no remote is specified, it defaults to 'origin'.
+# Note: This command fetches the branch associated with the PR and creates a worktree in the current directory.
+# The worktree will be named after the branch.
+# Ensure you have the GitHub CLI installed and authenticated with `gh auth login`.
+cpr() {
+  pr="$1"
+  remote="${2:-origin}"
+  branch=$(gh pr view "$pr" --json headRefName -q .headRefName)
+  git fetch "$remote" "$branch"
+  git worktree add "../$branch" "$branch"
+  cd "../$branch" || return
+  echo "Switched to new worktree for PR #$pr: $branch"
+}

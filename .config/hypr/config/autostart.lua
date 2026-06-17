@@ -13,6 +13,11 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
 
+    -- bring up graphical-session.target so xdg-desktop-portal can start
+    -- (the portal units have Requisite=graphical-session.target; without this,
+    --  screensharing fails: Firefox NotAllowedError, Chrome tab-only capture)
+    hl.exec_cmd("systemctl --user start hyprland-session.target")
+
     -- system bar
     hl.exec_cmd("waybar") 
 

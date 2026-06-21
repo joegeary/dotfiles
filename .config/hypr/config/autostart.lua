@@ -18,14 +18,8 @@ hl.on("hyprland.start", function()
     --  screensharing fails: Firefox NotAllowedError, Chrome tab-only capture)
     hl.exec_cmd("systemctl --user start hyprland-session.target")
 
-    -- system bar
-    hl.exec_cmd("waybar") 
-
-    -- notification daemon
-    hl.exec_cmd("dunst") 
-
-    -- idle daemon
-    hl.exec_cmd("hypridle") 
+    -- noctalia shell: bar, notifications, OSD, idle, lock, wallpaper, launcher
+    hl.exec_cmd("qs -c noctalia-shell")
 
     -- hyprland plugins
     hl.exec_cmd("pypr") 

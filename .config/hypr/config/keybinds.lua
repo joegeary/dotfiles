@@ -78,39 +78,38 @@ hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
 -- MEDIA KEYS
 --######################################
 
--- Only display the OSD on the currently focused monitor
-local osdclient = "swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')"
+-- Noctalia owns the OSD and targets the focused monitor itself
+local noct = "qs -c noctalia-shell ipc call"
 
 -- Laptop multimedia keys for volume and LCD brightness (with OSD)
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --output-volume raise"), { locked = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --output-volume lower"), { locked = true })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --output-volume mute-toggle"), { locked = true })
-hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --input-volume mute-toggle"), { locked = true })
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --brightness raise"), { locked = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --brightness lower"), { locked = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(noct .. " volume increase"), { locked = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(noct .. " volume decrease"), { locked = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd(noct .. " volume muteOutput"), { locked = true })
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd(noct .. " volume muteInput"), { locked = true })
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(noct .. " brightness increase"), { locked = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(noct .. " brightness decrease"), { locked = true })
 
--- Requires playerctl
-hl.bind("XF86AudioNext", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --playerctl next"), { locked = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("swayosd-client --monitor $(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name') --playerctl previous"), { locked = true })
+-- Media controls (Noctalia talks to MPRIS players)
+hl.bind("XF86AudioNext", hl.dsp.exec_cmd(noct .. " media next"), { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd(noct .. " media playPause"), { locked = true })
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(noct .. " media playPause"), { locked = true })
+hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(noct .. " media previous"), { locked = true })
 
 --######################################
 -- UTILITIES
 --######################################
 
--- Menus
-hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("/home/joe/.local/bin/launch-walker"))
-hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd("/home/joe/.local/bin/menu"))
-hl.bind("SUPER + GRAVE", hl.dsp.exec_cmd("/home/joe/.local/bin/menu system"))
-hl.bind("SUPER + PERIOD", hl.dsp.exec_cmd("/home/joe/.local/bin/launch-walker -m symbols"))
-hl.bind("SUPER + V", hl.dsp.exec_cmd("/home/joe/.local/bin/launch-walker -m clipboard"))
-hl.bind("SUPER + S", hl.dsp.exec_cmd("/home/joe/.local/bin/menu share"))
+-- Menus (Noctalia)
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd(noct .. " launcher toggle"))
+hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd(noct .. " controlCenter toggle"))
+hl.bind("SUPER + GRAVE", hl.dsp.exec_cmd(noct .. " sessionMenu toggle"))
+hl.bind("SUPER + PERIOD", hl.dsp.exec_cmd(noct .. " launcher emoji"))
+hl.bind("SUPER + V", hl.dsp.exec_cmd(noct .. " launcher clipboard"))
 
--- Notifications
-hl.bind("SUPER + COMMA", hl.dsp.exec_cmd("makoctl dismiss"))
-hl.bind("SUPER + SHIFT + COMMA", hl.dsp.exec_cmd("makoctl dismiss --all"))
-hl.bind("SUPER + CTRL + COMMA", hl.dsp.exec_cmd("makoctl mode -t do-not-disturb && makoctl mode| grep -q 'do-not-disturb' && notify-send Silenced notifications || notify-send Enabled notifications"))
+-- Notifications (Noctalia)
+hl.bind("SUPER + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismissOldest"))
+hl.bind("SUPER + SHIFT + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismissAll"))
+hl.bind("SUPER + CTRL + COMMA", hl.dsp.exec_cmd(noct .. " notifications toggleDND"))
 hl.bind("SUPER + I", hl.dsp.exec_cmd('notify-send "Window" "$(hyprctl -j activewindow)"'))
 
 -- Toggle idling / nightlight

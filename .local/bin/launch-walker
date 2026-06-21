@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# Ensure elephant is running before launching walker
-if ! pgrep -x elephant >/dev/null; then
-  elephant &
-fi
-
-exec walker "$@"

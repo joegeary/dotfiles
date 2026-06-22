@@ -26,3 +26,8 @@ TODO
 
 # tmux plugins (managed by TPM at ~/.tmux/plugins)
 .config/tmux/plugins/
+
+# Noctalia: track settings.json (durable config); ignore generated/runtime files
+.config/noctalia/colors.json
+.config/noctalia/plugins/
+.config/noctalia/colorschemes/

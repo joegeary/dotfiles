@@ -1,0 +1,28 @@
+{
+  "id": "onair-hue",
+  "name": "On-Air Hue",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "4.5.0",
+  "author": "Joe Geary",
+  "license": "MIT",
+  "description": "Turns a Philips Hue light red while the camera/mic is in use (video calls) and restores its previous state afterwards. Optionally toggles Do Not Disturb.",
+  "tags": ["Privacy", "Utility", "System"],
+  "entryPoints": {
+    "main": "Main.qml",
+    "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "lightId": "6219820b-8c9d-4729-8547-474717c340c3",
+      "colorX": 0.54,
+      "colorY": 0.32,
+      "brightness": 100,
+      "triggerOnCamera": true,
+      "triggerOnMic": false,
+      "toggleDND": true
+    }
+  }
+}

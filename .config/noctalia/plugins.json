@@ -12,13 +12,28 @@
         }
     ],
     "states": {
+        "5840d3:arch-updater": {
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+        },
+        "5840d3:network-manager-vpn": {
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+        },
         "5840d3:obsidian-provider": {
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+        },
+        "5840d3:privacy-indicator": {
             "enabled": true,
             "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
         },
         "5840d3:weather-indicator": {
             "enabled": true,
             "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+        },
+        "onair-hue": {
+            "enabled": true
         }
     },
     "version": 2

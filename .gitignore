@@ -29,5 +29,7 @@ TODO
 
 # Noctalia: track settings.json (durable config); ignore generated/runtime files
 .config/noctalia/colors.json
-.config/noctalia/plugins/
 .config/noctalia/colorschemes/
+# Ignore downloaded registry plugins, but track our own authored plugin(s)
+.config/noctalia/plugins/*
+!.config/noctalia/plugins/onair-hue/

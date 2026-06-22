@@ -1,6 +1,6 @@
 [Unit]
 Description=Monitor camera on-air status and toggle notifications
-After=pipewire.service mako.service
+After=pipewire.service
 
 [Service]
 Type=simple

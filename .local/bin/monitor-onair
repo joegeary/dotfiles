@@ -134,13 +134,13 @@ disable_onair() {
 # Function to disable notifications
 disable_notifications() {
   echo "Disabling notifications"
-  makoctl mode -a do-not-disturb
+  qs -c noctalia-shell ipc call notifications enableDND
 }
 
 # Function to enable notifications
 enable_notifications() {
   echo "Enabling notifications"
-  makoctl mode -r do-not-disturb
+  qs -c noctalia-shell ipc call notifications disableDND
 }
 
 # Main monitoring loop

@@ -25,13 +25,9 @@
  ╰─ Hotel    -> Trivago
 
  ╭─ WM              -> Hyprland
- ├─ Bar             -> Waybar
- ├─ Notifications   -> Dunst
- ├─ Launcher        -> Rofi 
+ ├─ Shell           -> Noctalia (bar, notifications, launcher, OSD, wallpaper, session menu, idle)
  ├─ Lock Screen     -> Hyprlock 
- ├─ Wallpaper Manager -> Hyprpaper 
- ├─ Display Manager -> Greetd + Tuigreet 
- ╰─ Logout Menu     -> Wlogout
+ ╰─ Display Manager -> Greetd + Tuigreet 
 
                         
 ```

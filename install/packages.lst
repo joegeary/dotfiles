@@ -30,12 +30,10 @@ qt5-graphicaleffects                                   # for sddm theme effects
 
 # --------------------------------------------------- // Window Manager
 hyprland                                               # wlroots-based wayland compositor
-dunst                                                  # notification daemon
+noctalia-shell                                         # wayland desktop shell (bar, notifications, launcher, OSD, wallpaper)
 rofi-wayland                                           # application launcher
-waybar                                                 # system bar
 swww                                                   # wallpaper
 hyprlock                                               # lock screen
-wlogout                                                # logout menu
 grimblast-git                                          # screenshot tool
 hyprpicker                                             # color picker
 slurp                                                  # region select for screenshot/screenshare

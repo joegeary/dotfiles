@@ -115,8 +115,8 @@ hl.bind("SUPER + SHIFT + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismiss
 hl.bind("SUPER + CTRL + COMMA", hl.dsp.exec_cmd(noct .. " notifications toggleDND"))
 hl.bind("SUPER + I", hl.dsp.exec_cmd('notify-send "Window" "$(hyprctl -j activewindow)"'))
 
--- Toggle nightlight
-hl.bind("SUPER + CTRL + N", hl.dsp.exec_cmd("$HOME/.local/bin/toggle-nightlight"))
+-- Toggle nightlight (Noctalia)
+hl.bind("SUPER + CTRL + N", hl.dsp.exec_cmd(noct .. " nightLight toggle"))
 
 -- Screen Capture
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("pkill hyprpicker || hyprpicker -an"))

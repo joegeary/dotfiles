@@ -36,7 +36,7 @@ hyprpicker                                             # color picker
 slurp                                                  # region select for screenshot/screenshare
 satty                                                  # Modern Screenshot Annotation
 cliphist                                               # clipboard manager
-hyprsunset                                             # blue light filter
+wlsunset                                               # nightlight backend (driven by noctalia)
 pyprland                                               # hyprland plugins
 
 # --------------------------------------------------- // Dependencies

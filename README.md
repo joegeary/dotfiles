@@ -25,8 +25,7 @@
  ╰─ Hotel    -> Trivago
 
  ╭─ WM              -> Hyprland
- ├─ Shell           -> Noctalia (bar, notifications, launcher, OSD, wallpaper, session menu, idle)
- ├─ Lock Screen     -> Hyprlock 
+ ├─ Shell           -> Noctalia (bar, notifications, launcher, OSD, wallpaper, lock screen, session menu)
  ╰─ Display Manager -> Greetd + Tuigreet 
 
                         

@@ -106,14 +106,16 @@ hl.bind("SUPER + GRAVE", hl.dsp.exec_cmd(noct .. " sessionMenu toggle"))
 hl.bind("SUPER + PERIOD", hl.dsp.exec_cmd(noct .. " launcher emoji"))
 hl.bind("SUPER + V", hl.dsp.exec_cmd(noct .. " launcher clipboard"))
 
+-- Lock screen (Noctalia)
+hl.bind("SUPER + CTRL + L", hl.dsp.exec_cmd(noct .. " lockScreen lock"))
+
 -- Notifications (Noctalia)
 hl.bind("SUPER + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismissOldest"))
 hl.bind("SUPER + SHIFT + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismissAll"))
 hl.bind("SUPER + CTRL + COMMA", hl.dsp.exec_cmd(noct .. " notifications toggleDND"))
 hl.bind("SUPER + I", hl.dsp.exec_cmd('notify-send "Window" "$(hyprctl -j activewindow)"'))
 
--- Toggle idling / nightlight
-hl.bind("SUPER + CTRL + I", hl.dsp.exec_cmd("$HOME/.local/bin/toggle-idle"))
+-- Toggle nightlight
 hl.bind("SUPER + CTRL + N", hl.dsp.exec_cmd("$HOME/.local/bin/toggle-nightlight"))
 
 -- Screen Capture

@@ -27,8 +27,8 @@ hl.on("hyprland.start", function()
     -- keyring daemon
     hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
 
-    -- polkit authentication daemon
-    hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &")
+    -- polkit authentication daemon (native hyprland agent)
+    hl.exec_cmd("systemctl --user start hyprpolkitagent.service")
 
     -- automounter for removable media
     hl.exec_cmd("udiskie --file-manager=yazi")

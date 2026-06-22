@@ -14,7 +14,7 @@
  ├─ Browser -> Firefox
  ├─ Shell   -> ZSH
  ├─ File Explorer -> Yazi
- ├─ Music Player -> Spotify + Spicetify
+ ├─ Music Player -> Spotify
  ╰─ Resource Monitor -> Bpytop
 
  ╭─ Terminal -> Kitty
@@ -26,7 +26,7 @@
 
  ╭─ WM              -> Hyprland
  ├─ Shell           -> Noctalia (bar, notifications, launcher, OSD, wallpaper, lock screen, session menu)
- ╰─ Display Manager -> Greetd + Tuigreet 
+ ╰─ Display Manager -> SDDM
 
                         
 ```

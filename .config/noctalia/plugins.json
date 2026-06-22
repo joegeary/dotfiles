@@ -1,12 +1,25 @@
 {
     "sources": [
         {
-            "enabled": true,
+            "enabled": false,
             "name": "Noctalia Plugins",
             "url": "https://github.com/noctalia-dev/noctalia-plugins"
+        },
+        {
+            "enabled": true,
+            "name": "Noctalia Plugins (v4)",
+            "url": "https://github.com/noctalia-dev/legacy-v4-plugins"
         }
     ],
     "states": {
+        "5840d3:obsidian-provider": {
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+        },
+        "5840d3:weather-indicator": {
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+        }
     },
     "version": 2
 }

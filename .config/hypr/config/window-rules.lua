@@ -10,16 +10,6 @@ hl.window_rule({
     suppress_event = "maximize",
 })
 
--- Just dash of opacity by default
-
-hl.window_rule({
-    name  = "global-opacity",
-    match = {
-        class = ".*",
-    },
-    opacity = "0.97 0.9",
-})
-
 hl.window_rule({
     name  = "fix-xwayland-dragging",
     match = {

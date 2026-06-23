@@ -32,7 +32,7 @@ hl.window_rule({
     match = {
         tag = "chromium-based-browser",
     },
-    opacity = "1 0.97",
+    opacity = "1 1",
 })
 
 hl.window_rule({
@@ -40,7 +40,7 @@ hl.window_rule({
     match = {
         tag = "firefox-based-browser",
     },
-    opacity = "1 0.97",
+    opacity = "1 1",
 })
 
 -- Some video sites should never have opacity applied to them

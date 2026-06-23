@@ -177,8 +177,8 @@
                 },
                 {
                     "defaultSettings": {
-                        "aurCmd": "paru -Qua 2>/dev/null",
-                        "aurHomepageCmd": "LC_ALL=C paru -Si {id} 2>/dev/null | awk '/^URL/ {print $3}'",
+                        "aurCmd": "yay -Qua 2>/dev/null",
+                        "aurHomepageCmd": "LC_ALL=C yay -Si {id} 2>/dev/null | awk '/^URL/ {print $3}'",
                         "boldText": true,
                         "boldVer": true,
                         "boldVerDesktop": true,
@@ -188,7 +188,7 @@
                         "customIconPath": "",
                         "desktopTip": true,
                         "enableColorization": false,
-                        "flatpak": true,
+                        "flatpak": false,
                         "hideOnEmpty": false,
                         "hoverTip": true,
                         "iconColor": "none",
@@ -201,7 +201,7 @@
                         "systemCmd": "checkupdates 2>/dev/null",
                         "toast": true,
                         "tooltip": true,
-                        "updateCmd": "ghostty -e bash -c 'echo \"Updating System...\";paru; flatpak update; read -n 1 -p \"Press any key to exit...\"'",
+                        "updateCmd": "kitty -e bash -c 'echo \"Updating System...\";yay; read -n 1 -p \"Press any key to exit...\"'",
                         "useDistroLogo": false
                     },
                     "id": "plugin:5840d3:arch-updater"

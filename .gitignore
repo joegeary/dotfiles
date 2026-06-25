@@ -27,6 +27,9 @@ TODO
 # tmux plugins (managed by TPM at ~/.tmux/plugins)
 .config/tmux/plugins/
 
+# Claude Code: track shared settings.json; ignore machine-local overrides
+.claude/settings.local.json
+
 # Noctalia: track settings.json (durable config); ignore generated/runtime files
 .config/noctalia/colors.json
 .config/noctalia/colorschemes/

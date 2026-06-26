@@ -169,6 +169,7 @@
   "alwaysThinkingEnabled": true,
   "showThinkingSummaries": true,
   "tui": "fullscreen",
+  "teammateMode": "auto",
   "skipWorkflowUsageWarning": true,
   "editorMode": "vim",
   "verbose": true,

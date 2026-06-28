@@ -6,7 +6,7 @@ plugins = [
 
 [scratchpads.term]
 animation = "fromTop"
-margin = 10
+margin = 50
 force_monitor = "DP-3"
 command = "kitty --class kitty-dropdown-term"
 class = "kitty-dropdown-term"
@@ -14,16 +14,25 @@ size = "75% 60%"
 
 [scratchpads.taskmon]
 animation = "fromTop"
-margin = 10
+margin = 50
 force_monitor = "DP-3"
 command = "kitty --class kitty-dropdown-taskmon bpytop"
 class = "kitty-dropdown-taskmon"
 size = "75% 60%"
 lazy = true
 
+[scratchpads.tuxedo]
+animation = "fromTop"
+margin = 50
+force_monitor = "DP-3"
+command = "kitty --class kitty-dropdown-tuxedo tuxedo"
+class = "kitty-dropdown-tuxedo"
+size = "75% 60%"
+lazy = true
+
 [scratchpads.gpumon]
 animation = "fromTop"
-margin = 10
+margin = 50
 force_monitor = "DP-3"
 command = "kitty --class kitty-dropdown-btop radeontop"
 class = "kitty-dropdown-gpumon"

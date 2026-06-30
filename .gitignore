@@ -18,6 +18,10 @@ TODO
 # Personal files
 .config/git/config-*
 
+# zoom-chat-notifier: track only the example; never commit secrets/tokens
+.config/zoom-chat-notifier/*
+!.config/zoom-chat-notifier/env.example
+
 # Zsh completion cache (regenerated on login)
 .zcompdump*
 

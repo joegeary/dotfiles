@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Zoom (PWA)
+Comment=Zoom web client as a standalone Chromium app window
+Exec=chromium --app=https://app.zoom.us/wc/home --class=zoom-pwa
+Icon=Zoom
+Terminal=false
+Categories=Network;InstantMessaging;VideoConference;
+StartupWMClass=zoom-pwa

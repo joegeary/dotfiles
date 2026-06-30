@@ -249,6 +249,14 @@ def run_forever():
             backoff = 1  # clean cycle (token refresh) -- reset
         except KeyboardInterrupt:
             return
+        except websockets.ConnectionClosed as e:
+            # Zoom closes connections normally (code 1000 "Bye") on server
+            # rotation, and boots one if a second opens with the same
+            # subscriptionId. Expected -- reconnect promptly, don't escalate.
+            code = getattr(getattr(e, "rcvd", None), "code", "?")
+            log(f"connection closed by server (code {code}); reconnecting in 3s")
+            time.sleep(3)
+            backoff = 1
         except Exception as e:  # noqa: BLE001 - daemon must never die
             log(f"connection error: {e!r}; reconnecting in {backoff}s")
             time.sleep(backoff)

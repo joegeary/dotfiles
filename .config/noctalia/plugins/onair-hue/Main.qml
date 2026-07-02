@@ -21,6 +21,22 @@ Item {
   property bool triggerOnCamera: cfg.triggerOnCamera ?? defaults.triggerOnCamera ?? true
   property bool triggerOnMic: cfg.triggerOnMic ?? defaults.triggerOnMic ?? false
   property bool toggleDND: cfg.toggleDND ?? defaults.toggleDND ?? true
+  // Comma-separated substrings of /dev/video* names to ignore (e.g. the
+  // scrcpy/v4l2loopback device used by Android mirroring). Case-insensitive.
+  property string ignoreCameras: cfg.ignoreCameras ?? defaults.ignoreCameras ?? ""
+
+  // Extended-regex alternation of device-name patterns to skip: always
+  // "Metadata" plus each configured ignore term (regex-escaped).
+  readonly property string _skipPattern: {
+    var terms = ["Metadata"];
+    var raw = (ignoreCameras || "").split(",");
+    for (var i = 0; i < raw.length; i++) {
+      var t = raw[i].trim();
+      if (t.length > 0)
+        terms.push(t.replace(/[.[\]{}()*+?^$|\\\/]/g, "\\$&"));
+    }
+    return terms.join("|");
+  }
 
   // --- Live detection state ---
   property bool camActive: false
@@ -39,7 +55,7 @@ Item {
   Process {
     id: cameraDetectionProcess
     running: false
-    command: ["sh", "-c", "for dev in /sys/class/video4linux/video*; do [ -e \"$dev/name\" ] && grep -qv 'Metadata' \"$dev/name\" && dev_name=$(basename \"$dev\") && find /proc/[0-9]*/fd -lname \"/dev/$dev_name\" 2>/dev/null; done | cut -d/ -f3 | xargs -r ps -o comm= -p | sort -u | tr '\\n' ',' | sed 's/,$//'"]
+    command: ["sh", "-c", "for dev in /sys/class/video4linux/video*; do [ -e \"$dev/name\" ] && grep -qivE '" + root._skipPattern + "' \"$dev/name\" && dev_name=$(basename \"$dev\") && find /proc/[0-9]*/fd -lname \"/dev/$dev_name\" 2>/dev/null; done | cut -d/ -f3 | xargs -r ps -o comm= -p | sort -u | tr '\\n' ',' | sed 's/,$//'"]
     stdout: StdioCollector {
       onStreamFinished: {
         var s = this.text.trim();

@@ -18,6 +18,7 @@ ColumnLayout {
   property bool triggerOnCamera: cfg.triggerOnCamera ?? defaults.triggerOnCamera ?? true
   property bool triggerOnMic: cfg.triggerOnMic ?? defaults.triggerOnMic ?? false
   property bool toggleDND: cfg.toggleDND ?? defaults.toggleDND ?? true
+  property string ignoreCameras: cfg.ignoreCameras ?? defaults.ignoreCameras ?? ""
 
   spacing: Style.marginL
 
@@ -57,6 +58,15 @@ ColumnLayout {
 
     NTextInput {
       Layout.fillWidth: true
+      label: "Ignore cameras"
+      description: "Comma-separated /dev/video* name substrings to ignore (e.g. 'scrcpy' for Android mirroring loopback). Case-insensitive."
+      placeholderText: "scrcpy"
+      text: root.ignoreCameras
+      onTextChanged: root.ignoreCameras = text
+    }
+
+    NTextInput {
+      Layout.fillWidth: true
       label: "On-air color X"
       description: "CIE xy X coordinate (0.54 ≈ red)."
       text: String(root.colorX)
@@ -89,6 +99,7 @@ ColumnLayout {
     pluginApi.pluginSettings.triggerOnCamera = root.triggerOnCamera;
     pluginApi.pluginSettings.triggerOnMic = root.triggerOnMic;
     pluginApi.pluginSettings.toggleDND = root.toggleDND;
+    pluginApi.pluginSettings.ignoreCameras = root.ignoreCameras;
     pluginApi.pluginSettings.colorX = parseFloat(root.colorX) || 0.54;
     pluginApi.pluginSettings.colorY = parseFloat(root.colorY) || 0.32;
     pluginApi.pluginSettings.brightness = parseInt(root.brightness) || 100;

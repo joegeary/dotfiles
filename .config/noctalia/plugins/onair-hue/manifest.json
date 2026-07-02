@@ -22,7 +22,8 @@
       "brightness": 100,
       "triggerOnCamera": true,
       "triggerOnMic": false,
-      "toggleDND": true
+      "toggleDND": true,
+      "ignoreCameras": "scrcpy"
     }
   }
 }

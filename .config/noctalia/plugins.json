@@ -14,26 +14,30 @@
     "states": {
         "5840d3:arch-updater": {
             "enabled": true,
-            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
         },
         "5840d3:network-manager-vpn": {
             "enabled": true,
-            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
         },
         "5840d3:obsidian-provider": {
             "enabled": true,
-            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
         },
         "5840d3:privacy-indicator": {
             "enabled": true,
-            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
         },
         "5840d3:weather-indicator": {
             "enabled": true,
-            "sourceUrl": "https://github.com/noctalia-dev/legacy-v4-plugins"
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
+        },
+        "androidconnect": {
+            "enabled": true
         },
         "onair-hue": {
-            "enabled": true
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
         }
     },
     "version": 2

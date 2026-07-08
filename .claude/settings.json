@@ -164,16 +164,16 @@
       }
     }
   },
-  "effortLevel": "high",
-  "autoMemoryEnabled": true,
   "alwaysThinkingEnabled": true,
-  "showThinkingSummaries": true,
+  "effortLevel": "high",
   "tui": "fullscreen",
-  "teammateMode": "auto",
+  "autoMemoryEnabled": true,
+  "showThinkingSummaries": true,
   "skipWorkflowUsageWarning": true,
   "editorMode": "vim",
   "verbose": true,
   "autoCompactEnabled": false,
+  "teammateMode": "auto",
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true
 }

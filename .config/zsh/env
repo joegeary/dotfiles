@@ -8,6 +8,9 @@ export XDG_STATE_HOME=$HOME/.local/state
 
 export PAGER=less
 
+# tuxedo / todo.txt-cli: load todos from ~/.todo/todo.txt
+export TODO_DIR="$HOME/.todo"
+
 # PATH
 export PATH=$HOME/.cargo/bin:$PATH      # Rust programs
 export PATH=$HOME/.dotnet/tools:$PATH   # Dotnet global tools

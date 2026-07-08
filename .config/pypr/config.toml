@@ -25,7 +25,7 @@ lazy = true
 animation = "fromTop"
 margin = 50
 force_monitor = "DP-3"
-command = "kitty --class kitty-dropdown-tuxedo tuxedo"
+command = "kitty --class kitty-dropdown-tuxedo env TODO_DIR=/home/joe/.todo tuxedo"
 class = "kitty-dropdown-tuxedo"
 size = "75% 60%"
 lazy = true

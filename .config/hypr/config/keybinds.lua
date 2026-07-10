@@ -113,7 +113,7 @@ hl.bind("SUPER + CTRL + L", hl.dsp.exec_cmd(noct .. " lockScreen lock"))
 hl.bind("SUPER + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismissOldest"))
 hl.bind("SUPER + SHIFT + COMMA", hl.dsp.exec_cmd(noct .. " notifications dismissAll"))
 hl.bind("SUPER + CTRL + COMMA", hl.dsp.exec_cmd(noct .. " notifications toggleDND"))
-hl.bind("SUPER + I", hl.dsp.exec_cmd('notify-send "Window" "$(hyprctl -j activewindow)"'))
+hl.bind("SUPER + I", hl.dsp.exec_cmd('w="$(hyprctl -j activewindow)"; notify-send "Window" "$w"; wl-copy "$w"'))
 
 -- Toggle nightlight (Noctalia)
 hl.bind("SUPER + CTRL + N", hl.dsp.exec_cmd(noct .. " nightLight toggle"))

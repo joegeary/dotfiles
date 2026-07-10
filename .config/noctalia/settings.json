@@ -217,6 +217,20 @@
                     "id": "plugin:5840d3:network-manager-vpn"
                 },
                 {
+                    "defaultSettings": {
+                        "embeddedMirrorAudioEnabled": false,
+                        "hideIfNoDeviceConnected": false,
+                        "iconColor": "none",
+                        "phoneSizePresetIndex": 0,
+                        "phoneSizePresetKey": "small",
+                        "phoneSizeStepDirection": 1,
+                        "wirelessAdbConnectHost": "",
+                        "wirelessAdbConnectPort": "",
+                        "wirelessAdbDevices": {
+                        },
+                        "wirelessAdbPairHost": "",
+                        "wirelessAdbPairPort": ""
+                    },
                     "id": "plugin:androidconnect"
                 },
                 {

@@ -45,6 +45,9 @@ hl.on("hyprland.start", function()
     -- system tray applets
     hl.exec_cmd("nm-applet")
     hl.exec_cmd("blueman-applet")
+
+    -- wayscriber annotation daemon (persistent tray; SUPER+D toggles overlay)
+    hl.exec_cmd("wayscriber --daemon")
     
     --hl.exec_cmd("gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal kitty")
 end)

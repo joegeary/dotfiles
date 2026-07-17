@@ -30,5 +30,4 @@ hl.env("QT_CURSOR_SIZE","24")
 # hl.env("bitdepth","10")
 # hl.env("MOZ_ENABLE_WAYLAND","1")
 # hl.env("SLURP_ARGS"," -d -b 00000066 -c ff0000 -F "Atkinson Hyperlegible"")
-hl.env("WAYSCRIBER_NO_TRAY=1")
 

@@ -130,7 +130,7 @@ hl.bind("SUPER + ALT + P", hl.dsp.exec_cmd("$HOME/.local/bin/screenrecord"))
 hl.bind("SUPER + CTRL + ALT + P", hl.dsp.exec_cmd("$HOME/.local/bin/screenrecord output"))
 
 -- Plugins
-hl.bind("SUPER + D", hl.dsp.exec_cmd("wayscriber --active --no-tray"))
+hl.bind("SUPER + D", hl.dsp.exec_cmd("wayscriber --daemon-toggle"))
 --pkill -SIGUSR1 wayscriber
 -- bindd = SUPER CTRL, TAB, Hyprexpo plugin, hyprexpo:expo, toggle
 

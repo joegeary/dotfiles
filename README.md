@@ -49,3 +49,10 @@ stow .
 ## Usage
 
 Make changes in the ~/dotfiles directory and then run `stow .` in order to sync the changes to the home directory. Changes can then be committed to the git repository.
+
+## Documentation
+
+| Doc | Covers |
+|-----|--------|
+| [install/INSTALL_ARCH.md](install/INSTALL_ARCH.md) | Base Arch Linux install, from partitioning to bootloader |
+| [install/SERVICES.md](install/SERVICES.md) | Post-install service setup that `stow` cannot handle: Tailscale, and Obsidian vault sync over Syncthing |

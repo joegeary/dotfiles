@@ -29,5 +29,5 @@ gui:
     "*": "#b7bdf8"
 git:
   parseEmoji: true
-  paging:
-    colorArg: always
+  pagers:
+    - colorArg: always

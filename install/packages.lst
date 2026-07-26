@@ -67,6 +67,7 @@ bpytop                                                 # tui resource monitor
 vesktop                                                # custom Discord app
 bat                                                    # cat-clone with theming
 stow                                                   # manage dotfiles
+syncthing                                              # p2p file sync (obsidian vault)
 
 # --------------------------------------------------- // Shell
 zsh                                                    # zsh shell
@@ -122,5 +123,10 @@ freerdp                                                # Remote Desktop Protocol
 zoom                                                   # Video conferencing and chat
 obsidian                                               # note-taking / knowledge base app
 networkmanager-fortisslvpn                             # NetworkManager VPN plugin for for Fortinet
+
+# --------------------------------------------------- // Remote Access
+tailscale                                              # mesh VPN, stable addressing between devices
+caddy-cloudflare                                       # caddy reverse proxy with cloudflare DNS-01 module
+cloudflared                                            # cloudflare tunnel for on-demand public exposure
 
 

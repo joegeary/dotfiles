@@ -36,3 +36,8 @@ TODO
 # Ignore downloaded registry plugins, but track our own authored plugin(s)
 .config/noctalia/plugins/*
 !.config/noctalia/plugins/onair-hue/
+
+# Herdr: track config.toml only; everything else is runtime (logs, sockets,
+# session layout, cached release notes) and must never be committed
+.config/herdr/*
+!.config/herdr/config.toml

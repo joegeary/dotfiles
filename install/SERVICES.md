@@ -11,6 +11,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 
 - [Tailscale](#tailscale)
 - [Obsidian vault sync (Syncthing)](#obsidian-vault-sync-syncthing)
+- [Herdr](#herdr)
 
 ## Tailscale
 
@@ -242,3 +243,59 @@ not, so each device tries to load plugins it does not have and skips them
 harmlessly. Do not disable a plugin from the phone or laptop to silence it, that
 edits the shared list and disables it everywhere. Add
 `.obsidian/community-plugins.json` to `.stignore` instead.
+
+## Herdr
+
+Terminal workspace manager for AI coding agents. The binary lives at
+`~/.local/bin/herdr` and updates itself, so it is not in
+[packages.lst](packages.lst):
+
+```sh
+herdr update                          # update in place
+herdr channel set <stable|preview>    # switch release channel
+```
+
+### What is tracked
+
+Only `.config/herdr/config.toml`, which holds durable preferences (theme,
+toast delivery, sound, onboarding state). Everything else in that directory is
+runtime and is excluded in [.gitignore](../.gitignore):
+
+| File | Why excluded |
+|------|--------------|
+| `herdr.sock`, `herdr-client.sock` | Live unix sockets, git cannot store them |
+| `herdr-server.log`, `herdr-client.log` | Logs, and the server log reaches megabytes |
+| `session.json` | Live pane and tab layout, rewritten constantly, and it records working directory paths |
+| `release-notes.json` | Cached from the update check |
+| `.plugins.lock` | Runtime lock |
+
+### Stow linking
+
+Unlike most config in this repo, `~/.config/herdr` is **not** a directory level
+symlink. The running server keeps live sockets in that directory, so it must
+stay a real directory, with only `config.toml` symlinked into it:
+
+```sh
+ln -s ../../dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
+```
+
+> [!CAUTION]
+> Applications that save config by writing a temp file and renaming it will
+> **replace the symlink with a regular file**, silently detaching it from this
+> repo. Changes then stop being tracked and drift accumulates unnoticed. This
+> already happened to `~/.claude/settings.json`. Check periodically:
+>
+> For a single file, `ls -l <path>` should show an arrow pointing into
+> `~/dotfiles`. To audit every tracked file at once, resolve each one and check
+> that it still lands inside the repo. This is correct for both file level and
+> directory level symlinks:
+>
+> ```sh
+> git -C ~/dotfiles ls-files | while read -r f; do
+>   [ -e "$HOME/$f" ] || continue
+>   case "$(readlink -f "$HOME/$f")" in
+>     "$HOME/dotfiles/"*) ;;
+>     *) echo "detached: ~/$f" ;;
+>   esac
+> done
+> ```

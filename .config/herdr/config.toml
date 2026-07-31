@@ -1,0 +1,13 @@
+onboarding = false
+
+[ui.toast]
+delivery = "system"
+
+[ui.sound]
+enabled = false
+
+[ui]
+show_agent_labels_on_pane_borders = false
+
+[theme]
+name = "catppuccin"

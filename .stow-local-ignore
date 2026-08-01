@@ -6,3 +6,5 @@ README.md
 install
 .task
 TODO
+__pycache__
+.*\.py[cod]

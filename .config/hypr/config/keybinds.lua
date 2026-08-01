@@ -154,15 +154,3 @@ hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("pypr toggle gpumon"))
 hl.bind("SUPER + N", hl.dsp.exec_cmd("obsidian"))
 hl.bind("SUPER + M", hl.dsp.exec_cmd("spotify"))
 hl.bind("SUPER + slash", hl.dsp.exec_cmd("bitwarden-desktop"))
-
---######################################
--- AUTO-CLICKER
---######################################
--- SUPER + =        : "jump & stay" mode   (press again to pause)
--- SUPER + SHIFT + =: "jump, click, return" mode (press again to pause)
--- SUPER + CTRL + = : re-capture the click spot from the current cursor position
--- Hitting the other mode key while running switches modes live.
-local clicker = "$HOME/.local/bin/auto-clicker"
-hl.bind("SUPER + EQUAL", hl.dsp.exec_cmd(clicker .. " stay"))
-hl.bind("SUPER + SHIFT + EQUAL", hl.dsp.exec_cmd(clicker .. " return"))
-hl.bind("SUPER + CTRL + EQUAL", hl.dsp.exec_cmd(clicker .. " set-spot --delay 0"))

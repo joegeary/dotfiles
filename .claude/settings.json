@@ -106,8 +106,8 @@
       "Bash(kubectl:*)"
     ],
     "deny": [
-      "Bash(git -C:*)",
-      "Bash(git --no-pager:*)"
+      "Bash(git --no-pager:*)",
+      "Bash(git -C:*)"
     ],
     "ask": [
       "Bash(python:*)",
@@ -122,7 +122,91 @@
       "Bash(sudo:*)",
       "Bash(docker:*)",
       "Bash(git push:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git -C:*)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -x '/home/joe/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/joe/.orca/agent-hooks/claude-hook.sh'; fi",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -168,12 +252,12 @@
   "effortLevel": "high",
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
-  "autoCompactEnabled": false,
   "showThinkingSummaries": true,
   "skipWorkflowUsageWarning": true,
   "editorMode": "vim",
   "verbose": true,
   "autoCompactEnabled": false,
+  "switchModelsOnFlag": false,
   "teammateMode": "auto",
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true

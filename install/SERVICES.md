@@ -12,6 +12,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 - [Tailscale](#tailscale)
 - [Obsidian vault sync (Syncthing)](#obsidian-vault-sync-syncthing)
 - [Herdr](#herdr)
+- [AI agent instructions](#ai-agent-instructions)
 
 ## Tailscale
 
@@ -299,3 +300,20 @@ ln -s ../../dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 >   esac
 > done
 > ```
+
+## AI agent instructions
+
+[AGENTS.md](../AGENTS.md) is the single source of global instructions for every
+AI coding agent, covering both working guidelines and voice.
+
+Two symlinks point at it, and both are created by `stow .`:
+
+| Link | Consumer |
+|------|----------|
+| `~/AGENTS.md` | Agents that read the `AGENTS.md` convention |
+| `~/.claude/CLAUDE.md` | Claude Code |
+
+The second is a symlink committed **inside** the repo (`.claude/CLAUDE.md ->
+../AGENTS.md`) rather than a manual link created after the fact, so a fresh
+machine gets it from `stow .` with no extra step. Edit `AGENTS.md` only, never
+the links.

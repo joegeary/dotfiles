@@ -211,9 +211,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "ccstatusline",
-    "padding": 0,
-    "refreshInterval": 10
+    "command": "~/.claude/statusline.sh"
   },
   "enabledPlugins": {
     "oncourse-developer@oncourse-plugins": true,

@@ -317,3 +317,21 @@ The second is a symlink committed **inside** the repo (`.claude/CLAUDE.md ->
 ../AGENTS.md`) rather than a manual link created after the fact, so a fresh
 machine gets it from `stow .` with no extra step. Edit `AGENTS.md` only, never
 the links.
+
+### Status line
+
+`.claude/statusline.sh` is vendored from
+[Gui-Gou/claude-statusline-burnrate](https://github.com/Gui-Gou/claude-statusline-burnrate)
+and wired up via the `statusLine` key in `.claude/settings.json`. It shows plan
+usage, burn rate against the weekly limit, and context window fill.
+
+Vendored rather than fetched at runtime so the exact reviewed version is pinned.
+To update, re-download and diff before committing:
+
+```sh
+curl -fsSL -o /tmp/sl.sh https://raw.githubusercontent.com/Gui-Gou/claude-statusline-burnrate/main/statusline.sh
+diff /tmp/sl.sh ~/dotfiles/.claude/statusline.sh
+```
+
+Requires `jq`, which is in [packages.lst](packages.lst). It keeps two counter
+files in `~/.claude/.cache/`, outside this repo.

@@ -1,336 +1,352 @@
 #!/usr/bin/env bash
-# claude-statusline-burnrate — a Claude Code status line that does the
-# weekly-limit math: real rate_limits data, today's share of the week,
-# sustainable burn rate, sleep-aware pacing. Every meter color-coded.
+# Claude Code status line. Self-contained: jq + git + coreutils, no node, no
+# npm package, no network. Replaces the `ccstatusline` dependency while keeping
+# its exact rendering, so the line looks identical to what it replaced.
 #
-# Renders:  🦄 Model effort │ 🎯 wk% today%t pace%/d trend │ 🧠 ctx% +add/-rem │ 🔥 5h% reset │ pet
-#   🦄/🎭/🪶/🌸 = model mascot: Fable unicorn, Opus theater, Sonnet quill, Haiku blossom
-#   │        = dim group separators: model │ weekly │ session │ 5h │ pet
-#   🎯 wk%   = REAL weekly plan usage, straight from rate_limits.seven_day
-#   today%t  = % of TODAY'S share of the weekly glide still available. The
-#             ideal burn is a line from 0% at the weekly reset to 100% at the
-#             next, drawn over AWAKE hours only: "days" run day-start to
-#             day-start (default 2am), and the first SL_SLEEP_HOURS after
-#             day-start count for nothing (18h awake = 1 day by default).
-#             Today's share = the line's rise between day-start and the coming
-#             one (14.3 on a full day); %t = (line@tonight - wk%) / share.
-#             100 = the whole share is ahead of you, 0 = you are exactly ON
-#             tonight's checkpoint (done for today), negative red = past it,
-#             eating tomorrow. Capped at 100 when running behind the line.
-#             The weekly % arrives as an INTEGER (1 tick = 7 %t points), so a
-#             sub-tick interpolator (see its section) smooths %t between ticks
-#             using this session's live cost; re-anchored at every real tick.
-#   pace%/d  = sustainable burn in weekly points: (100-wk%) / awake-days-left
-#             (clamped >=1 so with <1 day left pace = all that remains). By
-#             construction it is tomorrow's envelope if you stop now; constant
-#             while you spend exactly at it. Fresh week = 100/7 = 14.3. One
-#             decimal below 10, where rounding error starts to matter.
-#   trend    = wk% vs the AWAKE-time burn target (% of the week's awake hours
-#             elapsed — calendar time would fall ~3.6 pts "behind" every night
-#             while asleep). Goal = land at 100% exactly when the week resets.
-#             ▲+N red = ahead (will cap early), ▼-N cyan = behind (leaving
-#             sub unused), ✓ = ±3.
-#   🧠       = how full THIS chat's context window is (resets on /clear or compact)
-#   +add/-rem= lines changed this session (.cost), shown only once edits exist
-#   🔥       = REAL 5-hour plan usage + time until its reset
-#   pet      = animated cat; mood = the worst of the three meters above
+# Layout (two lines, both edge-to-edge via a flexible gap):
 #
-# NOTE on animation cadence: this script only runs when Claude Code re-renders
-# the status line (event-driven: often while streaming, never while idle).
-# Nothing here can self-animate between renders — frames advance per render.
+#   Model: Opus 4.5 | ⎇ main | (+22,-200)        cwd: /home/joe/dotfiles
+#   Ctx: 107.0k | Ctx Used: 10.7%              Session: 3.0% | Weekly: 66.0%
 #
-# WHY read rate_limits directly: it is the true server-side plan usage. An
-# earlier version estimated 5h burn with the `ccusage` npm tool against a p90
-# "heavy-block" budget — a proxy that needed node + a background cache and read
-# low because of outlier blocks. Once Claude Code exposed rate_limits (v2.1.x)
-# that whole machinery was deleted: this script is now pure jq + awk, zero
-# external deps beyond jq. Per-field gotchas are commented at their code sites.
+#   line 1: model name, git branch, git insertions/deletions <gap> working dir
+#   line 2: context tokens, context window used <gap> 5h plan use, weekly plan use
+#
+# Everything comes from the JSON payload Claude Code writes to stdin, except the
+# git segments which shell out to git. Plan usage is read from `rate_limits`,
+# which is the true server-side number, so there is nothing to estimate and
+# nothing to fetch.
+#
+# ---- rendering contract (why the odd details matter) ------------------------
+# Reproduced deliberately; changing any of these visibly changes the line:
+#   * Colors are the 256-color palette, emitted as ESC[38;5;Nm ... ESC[39m.
+#     The model segment is intentionally uncolored so it inherits the theme.
+#   * Separators are " | ". A separator is emitted only when the nearest
+#     preceding segment actually produced content, so a missing segment never
+#     leaves a dangling bar. Separators trailing at the end of a line are
+#     dropped entirely.
+#   * The gap is padded to the real terminal width. Claude Code collapses runs
+#     of ordinary spaces, so every space in the output (padding included) is
+#     written as U+00A0 NO-BREAK SPACE. This is the reason the right-hand
+#     segments stay pinned to the right edge.
+#   * Each line is prefixed with ESC[0m to reset whatever styling preceded it.
+#   * Usable width is the terminal width minus 6, tightening to minus 40 once
+#     context passes SL_COMPACT_THRESHOLD, leaving room for the compact-warning
+#     text Claude Code prints alongside the status line.
+#   * A line whose segments are all empty is suppressed rather than printed blank.
+#
+# Widths are counted in codepoints, not bytes, so the "⎇" glyph and non-ASCII
+# paths line up. Double-width CJK is counted as one column, same edge case the
+# previous implementation had.
+
+LC_ALL=C
+export LC_ALL
 
 # ---- tunables ---------------------------------------------------------------
-SL_DAY_START="${SL_DAY_START:-2}"      # your "day" flips at this hour (2 = 2am)
-SL_SLEEP_HOURS="${SL_SLEEP_HOURS:-6}"  # hours after day-start that count as sleep
-slp=$(( SL_SLEEP_HOURS * 3600 ))       # sleep seconds per day
-aday=$(( 86400 - slp ))                # awake seconds per day
+SL_COMPACT_THRESHOLD="${SL_COMPACT_THRESHOLD:-60}"  # context % that tightens the width
+SL_WIDTH="${SL_WIDTH:-}"                            # force a width (testing)
+
+# 256-color palette, matched to the previous configuration.
+C_MODEL="-"      # no color: inherit the terminal theme
+C_BRANCH=140     # bright magenta
+C_CHANGES=178    # yellow
+C_CWD=59         # bright black
+C_CTXLEN=111     # bright blue
+C_CTXPCT=80      # bright cyan
+C_SESSION=140    # bright magenta
+C_WEEKLY=178     # yellow
 
 input=$(cat)
 
-# One jq pass extracts every field, joined by US (0x1f) and read with IFS=$'\x1f'.
-# NOT tab: tab is IFS-whitespace, so `read` would collapse empty fields and
-# misalign everything after a missing value (empty dir, or no rate_limits on older CC).
-IFS=$'\x1f' read -r dir model cpct r5 r5reset r7 r7reset eff ladd lrem sid cost < <(echo "$input" | jq -r '
-  [ .workspace.current_dir // .cwd // "",
-    .model.display_name // "",
-    (.context_window.used_percentage      // "" | tostring),
-    (.rate_limits.five_hour.used_percentage // "" | tostring),
-    (.rate_limits.five_hour.resets_at       // "" | tostring),
-    (.rate_limits.seven_day.used_percentage // "" | tostring),
-    (.rate_limits.seven_day.resets_at       // "" | tostring),
-    (.effort.level // ""),
-    (.cost.total_lines_added   // 0 | tostring),
-    (.cost.total_lines_removed // 0 | tostring),
-    (.session_id // ""),
-    (.cost.total_cost_usd // "" | tostring) ] | join("")')
+# ---- payload -> fields ------------------------------------------------------
+# One jq pass does all the numeric work, because the token/percentage
+# derivations are fiddly and jq has real floats. Fields are joined by US
+# (0x1f) and read with IFS=$'\x1f'. NOT tab: tab is IFS-whitespace, so `read`
+# would collapse empty fields and misalign everything after a missing value.
+#
+# Context length prefers the live per-request usage: input + cache-creation +
+# cache-read tokens, which is what actually occupies the window (output tokens
+# do not). It falls back to deriving tokens from used_percentage when only the
+# percentage is reported.
+IFS=$'\x1f' read -r model cwd gitcwd ctxlen_raw ctxpct_raw s5_raw s7_raw < <(printf '%s' "$input" | jq -r '
+  # Numeric strings are coerced, matching the payload schema.
+  def fin: if type == "string" then (tonumber? // null) else . end
+           | if type == "number" and (isnan | not) and (isinfinite | not) then . else null end;
+  # Context-window fields reject negatives outright; rate-limit fields do not,
+  # they only clamp. That asymmetry is intentional and load-bearing.
+  def n: fin | if . != null and . >= 0 then . else null end;
+  def clampp: if . == null then null elif . < 0 then 0 elif . > 100 then 100 else . end;
 
-model="${model%% (*}"          # trim verbose suffixes e.g. "Opus 4.8 (1M context)" -> "Opus 4.8"
+  (.context_window // null)                                       as $cw
+  | ($cw.context_window_size | n)                                 as $wraw
+  | (if $wraw != null and $wraw > 0 then $wraw else null end)      as $win
+  | ($cw.current_usage)                                           as $cu
+  | ($cu | type)                                                  as $cut
+  | (if $cut == "number" then ($cu | n)
+     elif $cut == "object" then
+       (($cu.input_tokens | n) // 0) + (($cu.output_tokens | n) // 0)
+       + (($cu.cache_creation_input_tokens | n) // 0) + (($cu.cache_read_input_tokens | n) // 0)
+     else null end)                                               as $cutotal
+  | (if $cut == "number" then ($cu | n)
+     elif $cut == "object" then
+       (($cu.input_tokens | n) // 0)
+       + (($cu.cache_creation_input_tokens | n) // 0) + (($cu.cache_read_input_tokens | n) // 0)
+     else null end)                                               as $ctxlen0
+  | ($cw.used_percentage | n)                                     as $rawpct
+  | (if $rawpct != null and $win != null then $rawpct / 100 * $win else null end) as $pcttok
+  | ($cutotal // $pcttok)                                         as $usedtok
+  | (if $rawpct != null then ($rawpct | clampp)
+     elif $usedtok != null and $win != null and $win > 0 then (($usedtok / $win * 100) | clampp)
+     else null end)                                               as $usedpct
+  | ($ctxlen0 // $usedtok)                                        as $ctxlen
 
-DIM=$'\e[2m'; GRN=$'\e[32m'; YEL=$'\e[33m'; ORG=$'\e[38;5;208m'; RED=$'\e[31m'; CYAN=$'\e[36m'; RST=$'\e[0m'; esc=$'\e'
+  | (.model | if type == "string" then . elif type == "object" then (.display_name // .id) else null end) as $m
+  | (.rate_limits.five_hour.used_percentage | fin | clampp)       as $s5
+  | (.rate_limits.seven_day.used_percentage | fin | clampp)       as $s7
 
-# Meter icons — emoji, chosen for meaning: 🧠 context = the session's memory,
-# 🔥 5h = short-term burn, 🎯 weekly plan + today's spend envelope.
-# (A Nerd Font glyph experiment lost to plain emoji: zero font setup.)
-I_CTX="🧠"; I_5H="🔥"; I_WK="🎯"
+  | [ ($m // "" | sub("[[:space:]]*\\(.*\\)$"; "")),
+      (.cwd // ""),
+      (.cwd // .workspace.current_dir // .workspace.project_dir // ""),
+      ($ctxlen // "" | tostring),
+      ($usedpct // "" | tostring),
+      ($s5 // "" | tostring),
+      ($s7 // "" | tostring)
+    ] | join("")' 2>/dev/null)
 
-# ---- animation frame counter (advances once per status-line render) --------
-# Drives the rainbow drift and the pet.
-FRAMEF="$HOME/.claude/.cache/sl-frame"; mkdir -p "$HOME/.claude/.cache" 2>/dev/null
-fn=$(cat "$FRAMEF" 2>/dev/null); case "$fn" in ''|*[!0-9]*) fn=0 ;; esac
-fn=$(( fn + 1 )); printf '%s' "$fn" > "$FRAMEF" 2>/dev/null
-
-# ---- per-model hue family + per-effort color --------------------------------
-# Each model gets its own rainbow: Opus = warm reds/golds, Sonnet = blues,
-# Fable = purples/magentas, Haiku = greens, unknown = full rainbow.
-case "$(printf '%s' "$model" | tr '[:upper:]' '[:lower:]')" in
-  *opus*)   MHUES=(196 202 208 214 220 226 214 208); memoji="🎭" ;;  # theater: the grand opus
-  *sonnet*) MHUES=(21 27 33 39 45 51 45 39);         memoji="🪶" ;;  # quill: the poem
-  *fable*)  MHUES=(93 99 135 141 177 201 171 135);   memoji="🦄" ;;  # unicorn: purple like its rainbow
-  *haiku*)  MHUES=(22 28 34 40 46 82 118 46);        memoji="🌸" ;;  # cherry blossom
-  *)        MHUES=(196 208 226 46 51 33 201 129);    memoji="🤖" ;;
-esac
-case "$eff" in  # effort tier gets its own color, cool -> hot
-  low)       effc=$'\e[38;5;245m' ;;  # grey
-  medium)    effc=$'\e[38;5;39m'  ;;  # blue
-  high)      effc=$'\e[38;5;214m' ;;  # amber
-  xhigh|max) effc=$'\e[38;5;196m' ;;  # red
-  *)         effc="$DIM" ;;
-esac
-
-rainbow() {  # color each char of $1 with the model's hue family, drifting per frame
-  local s="$1" o="" i h n=${#MHUES[@]}
-  for (( i=0; i<${#s}; i++ )); do
-    h=${MHUES[$(( (i + fn) % n ))]}
-    o="${o}${esc}[38;5;${h}m${s:$i:1}"
-  done
-  printf '%s%s' "$o" "$RST"
-}
-
-ctxcol() {  # context %: green<20, yellow<40, orange<60, red>=60
-  if   [ "$1" -ge 60 ]; then printf '%s' "$RED"
-  elif [ "$1" -ge 40 ]; then printf '%s' "$ORG"
-  elif [ "$1" -ge 20 ]; then printf '%s' "$YEL"
-  else                       printf '%s' "$GRN"; fi
-}
-plancol() { # 5h & weekly plan %: green<30, yellow<50, orange<70, red>=70
-  if   [ "$1" -ge 70 ]; then printf '%s' "$RED"
-  elif [ "$1" -ge 50 ]; then printf '%s' "$ORG"
-  elif [ "$1" -ge 30 ]; then printf '%s' "$YEL"
-  else                       printf '%s' "$GRN"; fi
-}
-todaycol() { # today's envelope: the displayed value IS the fraction of today's
-  # allowance still unspent (100 -> 0), so color thresholds read off it directly.
-  if   [ "$1" -ge 50 ]; then printf '%s' "$GRN"   # most of today still ahead
-  elif [ "$1" -ge 25 ]; then printf '%s' "$YEL"   # over half spent
-  elif [ "$1" -ge 10 ]; then printf '%s' "$ORG"   # nearly tapped
-  else                       printf '%s' "$RED"; fi # envelope spent/overdrawn
-}
-pacecol() { # sustainable %/day vs the ~14%/day even-burn baseline (100%÷7d).
-  # Higher pace = more runway left per day = cooler; a low pace means you've
-  # overspent and are forced to slow down, so it warms toward red.
-  if   [ "$1" -ge 12 ]; then printf '%s' "$GRN"   # at/above even burn: healthy
-  elif [ "$1" -ge 8  ]; then printf '%s' "$YEL"   # rationing needed
-  elif [ "$1" -ge 5  ]; then printf '%s' "$ORG"   # tight
-  else                       printf '%s' "$RED"; fi # forced hard slowdown
-}
-reset_str() {  # unix ts -> "1h41m" / "12m" time remaining
-  [ -z "$1" ] && return
-  rem=$(( ($1 - $(date +%s)) / 60 )); [ "$rem" -lt 0 ] && rem=0
-  if [ "$rem" -ge 60 ]; then printf '%dh%dm' "$(( rem/60 ))" "$(( rem%60 ))"; else printf '%dm' "$rem"; fi
-}
-
-# ---- context % ------------------------------------------------------------
-ctx=""
-if [ -n "$cpct" ]; then
-  p=$(printf '%.0f' "$cpct")
-  ctx="$(ctxcol "$p")${I_CTX} ${p}%${RST}"
-fi
-
-# ---- 5-hour plan usage (real, from rate_limits) ---------------------------
-burn=""
-if [ -n "$r5" ]; then
-  p5=$(printf '%.0f' "$r5")
-  burn="$(plancol "$p5")${I_5H} ${p5}%${RST}"
-  rs=$(reset_str "$r5reset"); [ -n "$rs" ] && burn="${burn} ${DIM}${rs}${RST}"
-fi
-
-# ---- sub-tick interpolation for the weekly % -------------------------------
-# The payload's weekly used% is an INTEGER, so %t would only move in 7-point
-# jumps (1 wk-pt = 7% of a 14.3-pt daily share). Between ticks, estimate the
-# fraction of the next point already burned from THIS session's live cost
-# (total_cost_usd, penny precision), divided by a dollars-per-weekly-point
-# rate that self-calibrates: each tick landing inside one session yields a
-# measured $-delta sample, folded in by EMA (seeded $4.50, clamped 1..20).
-# Anchored to ground truth at EVERY tick, so drift is bounded by one point.
-# Blind spots (parallel sessions, other machines, claude.ai) only make it
-# UNDER-estimate — shows a touch more left than reality until the next tick.
-# A session switch just re-anchors (frac restarts at 0: graceful degradation
-# back to integer steps, never wrong direction).
-frac=0
-TICKF="$HOME/.claude/.cache/sl-tick"
-if [ -n "$r7" ] && [ -n "$sid" ] && [ -n "$cost" ]; then
-  tu=""; tsid=""; tc=""; tk=""
-  read -r tu tsid tc tk 2>/dev/null < "$TICKF"
-  tick=$(awk -v u="$r7" -v c="$cost" -v sid="$sid" -v tu="$tu" -v tsid="$tsid" -v tc="$tc" -v tk="$tk" 'BEGIN{
-    k = tk+0; if (k < 1 || k > 20) k = 4.5
-    if (tu == "" || u+0 != tu+0 || sid != tsid) {
-      # tick / first run / weekly reset / session switch: re-anchor here.
-      # Calibrate only on a clean +1 tick within one session, sane $ range.
-      if (tsid == sid && u+0 == tu+1 && c-tc > 0.5 && c-tc < 40) k = 0.5*k + 0.5*(c-tc)
-      printf "ANCHOR %s %s %.4f %.2f", u, sid, c, k
-    } else {
-      f = (c - tc) / k; if (f < 0) f = 0; if (f > 0.95) f = 0.95
-      printf "FRAC %.3f", f
+# Formatting happens here rather than in jq because it has to reproduce
+# JavaScript's toFixed(1): a tie rounds away from zero, where C's printf rounds
+# it to even. A tie only occurs when the value is exactly representable at two
+# decimals (50.25 is, 50.55 is not), so those are detected and nudged.
+IFS=$'\x1f' read -r ctxtok ctxpct sess week < <(
+  SL_TOK="$ctxlen_raw" SL_CTX="$ctxpct_raw" SL_S5="$s5_raw" SL_S7="$s7_raw" awk '
+    function fixed1(x,   s) {
+        s = sprintf("%.20f", x); sub(/^-?[0-9]*\./, "", s)
+        if (substr(s, 2, 1) == "5" && substr(s, 3) ~ /^0*$/) x += (x < 0 ? -1e-9 : 1e-9)
+        return sprintf("%.1f", x)
     }
-  }' 2>/dev/null)
-  case "$tick" in
-    ANCHOR\ *) printf '%s' "${tick#ANCHOR }" > "$TICKF" 2>/dev/null ;;
-    FRAC\ *)   frac="${tick#FRAC }" ;;
-  esac
+    function ftok(n) {
+        if (n >= 1000000) return fixed1(n / 1000000) "M"
+        if (n >= 1000)    return fixed1(n / 1000) "k"
+        if (n == int(n))  return sprintf("%d", n)
+        return sprintf("%.15g", n)
+    }
+    function pct(v) { return v == "" ? "" : fixed1(v + 0) }
+    BEGIN {
+        printf "%s\037%s\037%s\037%s",
+            (ENVIRON["SL_TOK"] == "" ? "" : ftok(ENVIRON["SL_TOK"] + 0)),
+            pct(ENVIRON["SL_CTX"]), pct(ENVIRON["SL_S5"]), pct(ENVIRON["SL_S7"])
+    }')
+
+# ---- git --------------------------------------------------------------------
+# Runs against the directory from the payload, falling back to wherever the
+# script was invoked when the payload names none. Three cheap plumbing calls per
+# render: status-line renders are event-driven, so there is nothing to cache.
+G=(git); [ -n "$gitcwd" ] && G=(git -C "$gitcwd")
+
+if [ "$("${G[@]}" rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]; then
+    # Staged and unstaged are summed. Untracked files are not counted, because
+    # --shortstat does not see them.
+    changes=$( { "${G[@]}" diff --shortstat 2>/dev/null
+                 "${G[@]}" diff --cached --shortstat 2>/dev/null; } | awk '
+        match($0, /[0-9]+ insertion/) { i += substr($0, RSTART, RLENGTH - 10) }
+        match($0, /[0-9]+ deletion/)  { d += substr($0, RSTART, RLENGTH - 9) }
+        END { printf "(+%d,-%d)", i + 0, d + 0 }')
+    # A detached HEAD has no symbolic ref, and reads as "no git" here.
+    branch=$("${G[@]}" symbolic-ref --short HEAD 2>/dev/null)
+    [ -z "$branch" ] && branch="no git"
+else
+    # Outside a work tree both segments still render, so the line does not
+    # silently change shape when you cd somewhere untracked.
+    branch="no git"
+    changes="(no git)"
 fi
 
-# ---- weekly (7-day) plan: used% + today's glide gauge + pace + trend -------
-# Awake-time model: the day runs day-start->day-start and the first
-# SL_SLEEP_HOURS after day-start are sleep, so ALL the budget math counts
-# AWAKE seconds only. awake(a,b) walks day by day; sleep = the first `slp`
-# seconds of each such day.
-# Today gauge %t: the ideal burn is a LINE over the week's awake hours, 0% at
-# the last reset -> 100% at the next (a reset that lands inside sleep => the
-# line really ends at the surrounding day-start). Tonight's checkpoint = the
-# line's value at the coming day-start; today's share = its rise since the
-# last one (14.3 on a full day).
-#   %t = (checkpoint - used) / share * 100
-# 100 = the whole share ahead, 0 = exactly ON tonight's checkpoint, negative
-# red = past it (eating tomorrow); capped at 100 when behind the line.
-# Everything derives from the live payload: no cache, no day-start snapshot,
-# so every machine shows the identical number.
-# pace = (100-used) / awake-days-left = sustainable %/day from this moment
-# (clamped >=1 day: with <1 day left, spendable = all that remains).
-# trend = used% minus the same line at NOW: ahead/behind in weekly points.
-# Positive = burning faster than the even awake-glide (caps early);
-# negative = slower (would end the week with unused credits).
-week=""; today=""; pace=""; trend=""
-if [ -n "$r7" ]; then
-  p7=$(printf '%.0f' "$r7")
-  week="$(plancol "$p7")${I_WK} ${p7}%${RST}"
-  if [ -n "$r7reset" ]; then
-    now=$(date +%s)
-    # anchor = today's day-start local (only matters mod 24h); BSD date first,
-    # GNU date fallback.
-    anchor=$(date -v"${SL_DAY_START}"H -v0M -v0S +%s 2>/dev/null || date -d "${SL_DAY_START}:00" +%s 2>/dev/null)
-    # start of the current day (anchor is today-calendar day-start, which
-    # before day-start lies in the future -> step back one day)
-    ds=$anchor; [ "$now" -lt "$anchor" ] 2>/dev/null && ds=$(( anchor - 86400 ))
-    tv=$(awk -v used="$r7" -v fr="$frac" -v ds="$ds" -v reset="$r7reset" -v now="$now" -v A="$anchor" -v slp="$slp" -v aday="$aday" '
-      function awake(a, b,   s, t, x, de, se, as) {  # awake seconds in [a,b)
-        s = 0; t = a
-        while (t < b) {
-          x = (t - A) % 86400; if (x < 0) x += 86400  # position in the day
-          de = t + (86400 - x)                        # next day-start
-          se = (b < de) ? b : de                      # end of this segment
-          as = t + ((x < slp) ? slp - x : 0)          # asleep? skip to wake
-          if (as < se) s += se - as
-          t = de
-        }
-        return s
-      }
-      BEGIN{
-        if (reset <= now || A <= 0) exit 1
-        rem = 100 - used; if (rem < 0) rem = 0
-        d = awake(now, reset) / aday; if (d < 1) d = 1  # awake-days left
-        pr = rem / d
-        pv = (pr < 10) ? sprintf("%.1f", pr) : sprintf("%.0f", pr)
-        # the even-burn line: % of the weeks awake hours elapsed by time t
-        ws = reset - 604800
-        aw = awake(ws, reset)
-        if (aw <= 0) exit 1
-        fv = "NA"
-        de = ds + 86400; if (de > reset) de = reset   # day ends: next day-start/reset
-        d0 = ds; if (d0 < ws) d0 = ws                 # day start clamped to week
-        ckpt  = awake(ws, de) / aw * 100              # the line at tonight
-        share = ckpt - awake(ws, d0) / aw * 100       # todays slice of the line
-        if (share > 0.1) {
-          # used + fr: integer weekly % plus the sub-tick interpolation, so
-          # %t moves ~1 point per ~$0.65 instead of 7-point jumps per tick
-          f = (ckpt - (used + fr)) / share * 100
-          if (f > 100) f = 100                        # behind the line: capped
-          fv = sprintf("%.0f", f)
-        }
-        # trend: same line evaluated at NOW (awake-aware — calendar time would
-        # fall ~3.6 pts "behind" every night while asleep)
-        e = awake(ws, now) / aw * 100
-        if (e < 0) e = 0; if (e > 100) e = 100
-        dfv = sprintf("%.0f", used - e)
-        print fv, pv, dfv
-      }' 2>/dev/null)
-    df=""
-    if [ -n "$tv" ]; then
-      read -r tfrac pv df <<< "$tv"
-      [ "$tfrac" != "NA" ] && today="$(todaycol "$tfrac")${tfrac}%t${RST}"
-      # pacecol needs an integer: strip any decimal before comparing
-      case "$pv" in *[0-9]*) pace="$(pacecol "${pv%.*}")${pv}%/d${RST}" ;; esac
+# ---- terminal width ---------------------------------------------------------
+# The status line runs with its stdout piped, so the tty has to be found by
+# walking up the process tree to the first ancestor that owns one.
+term_width() {
+    if [ -n "$SL_WIDTH" ]; then printf '%s' "$SL_WIDTH"; return; fi
+    local pid=$$ depth parent tty w
+    for depth in 1 2 3 4 5 6 7 8; do
+        parent=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')
+        case "$parent" in ''|*[!0-9]*) break ;; esac
+        pid=$parent
+        tty=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d '[:space:]')
+        case "$tty" in ''|'?'|'??') continue ;; esac
+        w=$(stty -F "/dev/$tty" size 2>/dev/null | awk '{ print $2 }')
+        case "$w" in ''|*[!0-9]*|0) ;; *) printf '%s' "$w"; return ;; esac
+    done
+    w=$(tput cols 2>/dev/null)
+    case "$w" in ''|*[!0-9]*|0) ;; *) printf '%s' "$w" ;; esac
+}
+
+detected=$(term_width)
+width=""
+if [ -n "$detected" ]; then
+    # Tighten once context crosses the threshold so the compact warning fits.
+    if [ -n "$ctxpct_raw" ] && awk -v p="$ctxpct_raw" -v t="$SL_COMPACT_THRESHOLD" 'BEGIN { exit !(p >= t) }'; then
+        width=$(( detected - 40 ))
+    else
+        width=$(( detected - 6 ))
     fi
-    case "$df" in ''|*[!0-9-]*) df="" ;; esac
-    if [ -n "$df" ]; then
-      if   [ "$df" -ge 3 ];  then trend="${RED}▲+${df}${RST}"   # overspending
-      elif [ "$df" -le -3 ]; then trend="${CYAN}▼${df}${RST}"   # underspending
-      else                        trend="${GRN}✓${RST}"          # on track ±3
-      fi
+    # Deliberately not clamped. A width of exactly 0 means "no width to lay out
+    # against", so the gap falls back to a dim separator, while a negative width
+    # still lays out but yields no padding. Both fall out of a very narrow
+    # terminal, and both match what this replaced.
+fi
+
+# ---- element buffer ---------------------------------------------------------
+# One line is described by three parallel arrays before layout. Kinds:
+#   w  widget that produced content     w0 widget that produced nothing
+#   s  separator slot                   f  flexible gap
+K=(); T=(); L=()
+buf_reset() { K=(); T=(); L=(); }
+
+# Codepoint width of plain text. ASCII takes the fast path; anything else is
+# counted by stripping UTF-8 continuation bytes.
+vwidth() {
+    case "$1" in
+        *[!\ -~]*) printf '%s' "$1" | tr -d '\200-\277' | wc -c | tr -d '[:space:]' ;;
+        *) printf '%s' "${#1}" ;;
+    esac
+}
+
+# widget <plain-text> <color256|-> [visible-width]
+widget() {
+    local plain=$1 col=$2 vis=${3:-}
+    if [ -z "$plain" ]; then K+=(w0); T+=(""); L+=(0); return; fi
+    [ -z "$vis" ] && vis=$(vwidth "$plain")
+    K+=(w); L+=("$vis")
+    if [ "$col" = - ]; then T+=("$plain"); else T+=($'\e[38;5;'"$col"'m'"$plain"$'\e[39m'); fi
+}
+sep()  { K+=(s); T+=(""); L+=(0); }
+flex() { K+=(f); T+=(""); L+=(0); }
+
+# Lay the buffer out and print it, or print nothing when it holds no content.
+render_line() {
+    local -a fk=() ft=() fl=()   # kind (w/s/f), text, visible width
+    local i j n=${#K[@]} had
+
+    for (( i = 0; i < n; i++ )); do
+        case ${K[i]} in
+            w)  fk+=(w); ft+=("${T[i]}"); fl+=("${L[i]}") ;;
+            w0) : ;;
+            f)  fk+=(f); ft+=(""); fl+=(0) ;;
+            s)  # only after a segment that actually rendered something
+                had=0
+                for (( j = i - 1; j >= 0; j-- )); do
+                    case ${K[j]} in
+                        s|f) continue ;;
+                        w)   had=1; break ;;
+                        w0)  had=0; break ;;
+                    esac
+                done
+                if [ "$had" = 1 ]; then fk+=(s); ft+=(" | "); fl+=(3); fi
+                ;;
+        esac
+    done
+
+    [ ${#fk[@]} -eq 0 ] && return
+    # Trailing separators are dropped; a trailing gap is kept so the last
+    # segment stays right-aligned.
+    while [ ${#fk[@]} -gt 0 ] && [ "${fk[${#fk[@]}-1]}" = s ]; do
+        unset "fk[${#fk[@]}-1]" "ft[${#ft[@]}-1]" "fl[${#fl[@]}-1]"
+    done
+    [ ${#fk[@]} -eq 0 ] && return
+
+    local out="" content=0 flexcount=0 filled=0
+    for (( i = 0; i < ${#fk[@]}; i++ )); do
+        case ${fk[i]} in
+            f) flexcount=$(( flexcount + 1 )) ;;
+            w) filled=1; content=$(( content + fl[i] )) ;;
+            *) content=$(( content + fl[i] )) ;;
+        esac
+    done
+    # Nothing rendered means no line at all, rather than a line of padding.
+    [ "$filled" = 0 ] && return
+
+    if [ "$flexcount" -gt 0 ] && [ -n "$width" ] && [ "$width" -ne 0 ]; then
+        local space=$(( width - content )); [ "$space" -lt 0 ] && space=0
+        local per=$(( space / flexcount )) extra=$(( space % flexcount )) seen=0 pad spaces
+        for (( i = 0; i < ${#fk[@]}; i++ )); do
+            if [ "${fk[i]}" = f ]; then
+                pad=$per; [ "$seen" -lt "$extra" ] && pad=$(( per + 1 ))
+                seen=$(( seen + 1 ))
+                printf -v spaces '%*s' "$pad" ''
+                out+="$spaces"
+            else
+                out+="${ft[i]}"
+            fi
+        done
+    else
+        # No width to fill against: a gap degrades to a dim separator.
+        for (( i = 0; i < ${#fk[@]}; i++ )); do
+            if [ "${fk[i]}" = f ]; then out+=$'\e[90m | \e[39m'
+            else out+="${ft[i]}"; fi
+        done
     fi
-  fi
-fi
 
-# ---- lines changed this session (only if there were edits) ----------------
-lines=""
-if [ "${ladd:-0}" -gt 0 ] 2>/dev/null || [ "${lrem:-0}" -gt 0 ] 2>/dev/null; then
-  lines="${GRN}+${ladd}${RST}/${RED}-${lrem}${RST}"
-fi
+    # Content wider than the terminal is cut and marked with "...". Trailing
+    # color codes are left open exactly as they were, matching the previous
+    # behavior; the ESC[0m at the start of each line cleans up after them.
+    if [ -n "$width" ] && [ "$width" -gt 0 ]; then
+        out=$(SL_TEXT="$out" SL_MAX="$width" awk '
+            BEGIN {
+                for (k = 128; k <= 191; k++) CONT[sprintf("%c", k)] = 1  # UTF-8 continuation bytes
+                t = ENVIRON["SL_TEXT"]; max = ENVIRON["SL_MAX"] + 0; n = length(t)
+                if (max <= 0) exit
+                # Pass one: visible width, ignoring escape sequences.
+                vis = 0; i = 1
+                while (i <= n) {
+                    c = substr(t, i, 1)
+                    if (c == "\033") { i = esc(t, i, n); continue }
+                    if (!(c in CONT)) vis++
+                    i++
+                }
+                if (vis <= max) { printf "%s", t; exit }
+                if (max <= 3) { while (max-- > 0) printf "."; exit }
+                # Pass two: copy up to max-3 visible columns, then ellipsis.
+                target = max - 3; w = 0; i = 1
+                while (i <= n) {
+                    c = substr(t, i, 1)
+                    if (c == "\033") { j = esc(t, i, n); printf "%s", substr(t, i, j - i); i = j; continue }
+                    if (!(c in CONT)) { if (w >= target) break; w++ }
+                    printf "%s", c; i++
+                }
+                printf "..."
+            }
+            # Length of the CSI sequence starting at i, so it is copied whole.
+            function esc(t, i, n,   j) {
+                j = i + 1
+                if (substr(t, j, 1) != "[") return i + 1
+                for (j++; j <= n; j++) if (substr(t, j, 1) ~ /[@-~]/) return j + 1
+                return j
+            }')
+    fi
 
-# ---- companion pet (animated; reacts to the worst meter) ------------------
-# Frames advance once per status-line render, so the pet is lively while Claude
-# is working and rests when idle. Mood = worst of context / 5h / weekly usage.
-pet=""; stress=0
-for v in "$p" "$p5" "$p7"; do
-  case "$v" in ''|*[!0-9]*) : ;; *) [ "$v" -gt "$stress" ] && stress="$v" ;; esac
-done
-# 8 frames; the face itself animates (blinks / changes) and the effect char is
-# always present, so every single render visibly moves.
-i=$(( fn % 8 ))
-if   [ "$stress" -ge 70 ]; then                                    # panic
-  faces=("😾" "🙀" "😾" "😿" "😾" "🙀" "😾" "🙀"); a=("🔥" "💢" "💥" "🔥" "💢" "💥" "🔥" "💢")
-elif [ "$stress" -ge 50 ]; then                                    # nervous
-  faces=("🙀" "😿" "🙀" "😿" "🙀" "😾" "🙀" "😿"); a=("💦" "°" "💦" "∘" "💦" "°" "💦" "∘")
-elif [ "$stress" -ge 30 ]; then                                    # alert
-  faces=("😼" "🐱" "😼" "😽" "😼" "🐱" "😼" "🐱"); a=("·" "‥" "…" "‥" "·" "‥" "…" "‥")
-else                                                                # happy
-  faces=("😺" "😸" "😺" "😹" "😺" "😸" "😻" "😸"); a=("♪" "♫" "♬" "♪" "♫" "♬" "♫" "♪")
-fi
-pet="${faces[$i]}${DIM}${a[$i]}${RST}"
+    # Claude Code collapses runs of ordinary spaces, which would undo the
+    # padding, so every space is written as U+00A0 (UTF-8 \xc2\xa0).
+    printf '\e[0m%s\n' "${out// /$'\xc2\xa0'}"
+}
 
-# ---- assemble: logical groups joined by dim │ separators -------------------
-#   🦄 Model effort │ 🎯 wk today pace trend │ 🧠 ctx +/-lines │ 🔥 5h reset │ pet
-# Group 1 = model, 2 = weekly plan, 3 = this session, 4 = 5h window.
-# Empty groups vanish along with their separator, so the line never shows a
-# dangling │ when a data source is missing (old CC version, no edits yet...).
-SEP=" ${DIM}│${RST} "
-g1=""
-[ -n "$model" ] && g1="${memoji} $(rainbow "$model")${eff:+ ${effc}${eff}${RST}}"
-g2="${week}"
-[ -n "$today" ] && g2="${g2:+${g2} }${today}"
-[ -n "$pace" ]  && g2="${g2:+${g2} }${pace}"
-[ -n "$trend" ] && g2="${g2:+${g2} }${trend}"
-g3="${ctx}"
-[ -n "$lines" ] && g3="${g3:+${g3} }${lines}"
-g4="${burn}"
-out=""
-for g in "$g1" "$g2" "$g3" "$g4" "$pet"; do
-  [ -n "$g" ] && out="${out:+${out}${SEP}}${g}"
-done
-printf '%s' "$out"
+# ---- line 1: model, branch, changes <gap> working directory -----------------
+buf_reset
+widget "${model:+Model: $model}" "$C_MODEL"
+sep
+# "⎇ " is two columns; passed explicitly so the width never depends on locale.
+widget "${branch:+⎇ $branch}" "$C_BRANCH" "${branch:+$(( 2 + ${#branch} ))}"
+sep
+widget "$changes" "$C_CHANGES"
+flex
+widget "${cwd:+cwd: $cwd}" "$C_CWD"
+render_line
+
+# ---- line 2: context <gap> plan usage --------------------------------------
+buf_reset
+widget "${ctxtok:+Ctx: $ctxtok}" "$C_CTXLEN"
+sep
+widget "${ctxpct:+Ctx Used: $ctxpct%}" "$C_CTXPCT"
+flex
+widget "${sess:+Session: $sess%}" "$C_SESSION"
+sep
+widget "${week:+Weekly: $week%}" "$C_WEEKLY"
+render_line

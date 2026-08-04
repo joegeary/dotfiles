@@ -320,18 +320,28 @@ the links.
 
 ### Status line
 
-`.claude/statusline.sh` is vendored from
-[Gui-Gou/claude-statusline-burnrate](https://github.com/Gui-Gou/claude-statusline-burnrate)
-and wired up via the `statusLine` key in `.claude/settings.json`. It shows plan
-usage, burn rate against the weekly limit, and context window fill.
+`.claude/statusline.sh` is wired up via the `statusLine` key in
+`.claude/settings.json`. Two lines, each stretched to the terminal width:
 
-Vendored rather than fetched at runtime so the exact reviewed version is pinned.
-To update, re-download and diff before committing:
-
-```sh
-curl -fsSL -o /tmp/sl.sh https://raw.githubusercontent.com/Gui-Gou/claude-statusline-burnrate/main/statusline.sh
-diff /tmp/sl.sh ~/dotfiles/.claude/statusline.sh
+```
+Model: Opus 5 | ⎇ main | (+12,-4)             cwd: /home/joe/dotfiles
+Ctx: 456.4k | Ctx Used: 46.0%            Session: 7.0% | Weekly: 66.0%
 ```
 
-Requires `jq`, which is in [packages.lst](packages.lst). It keeps two counter
-files in `~/.claude/.cache/`, outside this repo.
+Everything except the git segments comes from the JSON payload Claude Code
+writes to the script's stdin. Plan usage is read from that payload's
+`rate_limits`, which is the real server-side number, so nothing is estimated
+and nothing is fetched over the network.
+
+Requires `jq`, which is in [packages.lst](packages.lst). No node, no npm
+package, no cache files, no network.
+
+It began as the `ccstatusline` npm package, then as a vendored copy of
+[Gui-Gou/claude-statusline-burnrate](https://github.com/Gui-Gou/claude-statusline-burnrate).
+Both are gone: a status line is not worth a dependency. The current script is a
+deliberate reimplementation of the `ccstatusline` layout, verified
+byte-for-byte against it before that package was removed, which is why its
+header documents small details like padding with U+00A0 instead of spaces
+(Claude Code collapses runs of ordinary spaces) and reproducing JavaScript's
+`toFixed` rounding. Those details are the reason it looks right; changing them
+changes the output.

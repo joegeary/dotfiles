@@ -11,6 +11,8 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 
 - [Tailscale](#tailscale)
 - [Obsidian vault sync (Syncthing)](#obsidian-vault-sync-syncthing)
+- [GNOME keyring auto-unlock](#gnome-keyring-auto-unlock)
+- [Dynamic DNS](#dynamic-dns)
 - [Herdr](#herdr)
 - [AI agent instructions](#ai-agent-instructions)
 
@@ -244,6 +246,168 @@ not, so each device tries to load plugins it does not have and skips them
 harmlessly. Do not disable a plugin from the phone or laptop to silence it, that
 edits the shared list and disables it everywhere. Add
 `.obsidian/community-plugins.json` to `.stignore` instead.
+
+## GNOME keyring auto-unlock
+
+Anything that stores a password in the Secret Service — browsers, the `gh` CLI,
+Bitwarden, the [DDNS updater](#dynamic-dns) — depends on the keyring being
+unlocked. Two separate defects stop that from happening on a stock install, and
+both are silent: things appear to work until a password prompt shows up, or an
+unattended timer fails because nothing is there to answer one.
+
+`gnome-keyring` needs no entry in [packages.lst](packages.lst); it is a
+dependency of `omarchy` itself. `libsecret` (for `secret-tool`) is listed.
+
+### 1. PAM never captures the login password
+
+Arch's `/etc/pam.d/sddm` ships the `session` line for `pam_gnome_keyring.so` but
+**not** the `auth` line. The session line asks the daemon to start; only the auth
+line hands it the password typed at the greeter. Without it there is nothing to
+unlock with, so `login.keyring` stays locked for the whole session no matter what
+the passwords are.
+
+Back the file up, then add the auth line directly after `auth include system-login`:
+
+```sh
+sudo cp /etc/pam.d/sddm /etc/pam.d/sddm.bak-$(date +%Y%m%d)
+```
+
+```
+auth        include     system-login
+-auth       optional    pam_gnome_keyring.so
+```
+
+The leading `-` means "skip quietly if the module is missing" and matches how the
+existing session line is written. Takes effect at the next login, not before.
+
+> [!NOTE]
+> This only auto-unlocks when the login password and the keyring password match.
+> A keyring carried over from another machine keeps *its* password, so if the two
+> differ you get one unlock prompt per session instead of silent failure. Change
+> the keyring password to match rather than re-creating it, or every secret in it
+> is lost.
+
+### 2. New secrets land in a keyring that never auto-unlocks
+
+`pam_gnome_keyring` unlocks exactly one keyring, `login`. But a fresh install
+creates `Default_keyring` and points the `default` alias at it, and the alias is
+what receives every newly stored secret. The result is a locked keyring
+accumulating live credentials.
+
+The symptom is easy to misread, because `secret-tool search` looks in *every*
+collection and happily returns attributes from locked ones. Check the alias and
+the lock state directly instead:
+
+```sh
+busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
+  org.freedesktop.Secret.Service ReadAlias s default        # want .../collection/login
+
+busctl --user get-property org.freedesktop.secrets \
+  /org/freedesktop/secrets/collection/login \
+  org.freedesktop.Secret.Collection Locked                  # want: b false
+```
+
+Repoint the alias through D-Bus rather than editing
+`~/.local/share/keyrings/default` by hand — the daemon reads that file only at
+startup, so `SetAlias` is what applies immediately (it writes the file too):
+
+```sh
+busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
+  org.freedesktop.Secret.Service SetAlias so \
+  default /org/freedesktop/secrets/collection/login
+```
+
+> [!CAUTION]
+> Repointing the alias does not move secrets already written to the old keyring.
+> Enumerate it before assuming it is empty, because a locked collection can
+> report zero items:
+>
+> ```sh
+> busctl --user get-property org.freedesktop.secrets \
+>   /org/freedesktop/secrets/collection/Default_5fkeyring \
+>   org.freedesktop.Secret.Collection Items
+> ```
+>
+> Note the D-Bus path escaping: `_` becomes `_5f`. Anything found there has to be
+> re-created in `login` (usually by re-authenticating the app) or it stays
+> unreachable.
+
+## Dynamic DNS
+
+Keeps a DnsMadeEasy A record pointed at this machine's public IP, which is
+dynamic. **Remote access depends on it** — when the ISP hands out a new address
+and the record goes stale, there is no way back in until it is fixed locally.
+
+The updater is a small shell script maintained in its own repository, with its
+own `install-linux.sh`. Prefer that installer over placing files by hand: it is
+idempotent, writes the systemd units with absolute paths, and finishes with a
+verification run.
+
+Requires the [keyring section above](#gnome-keyring-auto-unlock) to be working
+first. The password lives in the Secret Service under the service name
+`ddns-dnsmadeeasy` and is never written to disk; the installer stores it there,
+and the updater reads it back on each run. Also needs `curl` and `secret-tool`.
+
+```sh
+cd <ddns-repo>/linux
+./install-linux.sh --username <dnsmadeeasy-user> --recordid <record-id> \
+                   --interval-minutes 15
+```
+
+Omit `--password` and it prompts with echo off, which keeps the secret out of
+`ps` and out of shell history. It lays down:
+
+| Path | Contents |
+|------|----------|
+| `~/.local/state/ddns/ddns.sh`, `ddns_lib.sh` | The updater (mode 700) |
+| `~/.local/state/ddns/ddns.config` | Record ID, endpoint URLs, last-seen IP, status (mode 600) — **no credentials** |
+| `~/.local/state/ddns/ddns.log` | Append-only run log |
+| `~/.config/systemd/user/ddns.{service,timer}` | 15 minute schedule, `Persistent=true` |
+
+The config file is state as well as configuration: the script writes `PublicIP`,
+`LastUpdate`, `LastVerify` and `Status` back into it. Carrying it to a new
+machine preserves that history, and the installer merges rather than overwrites.
+
+Every run re-pushes the record even when the IP has not changed, so a record
+edited out of band self-corrects rather than staying wrong until the next real
+IP change.
+
+### Lingering
+
+A `--user` timer only runs while a user session exists, so without lingering the
+updater stops the moment you log out:
+
+```sh
+sudo loginctl enable-linger "$USER"
+```
+
+> [!IMPORTANT]
+> Lingering and keyring auto-unlock pull in opposite directions. A lingering
+> session started at boot has no PAM login behind it, so the keyring is still
+> locked and the updater cannot read its password until someone logs in
+> graphically. `Persistent=true` covers the gap by firing the missed run once the
+> timer is live again. Lingering keeps it running *after* logout, which is the
+> case that matters; it does not make the machine work from cold boot with nobody
+> logged in.
+
+### Verifying
+
+```sh
+systemctl --user list-timers ddns.timer --all   # NEXT/LAST populated
+systemctl --user show ddns.service -p Result    # want: Result=success
+grep -E '^(Status|LastVerify)=' ~/.local/state/ddns/ddns.config
+tail -3 ~/.local/state/ddns/ddns.log
+```
+
+`Status=Ok` plus a fresh `LastVerify` means a full round trip succeeded. To check
+without touching the live record:
+
+```sh
+~/.local/state/ddns/ddns.sh --dry-run
+```
+
+That still reads the keyring and fetches the public IP, so it is the fastest way
+to tell a credential problem from a network one.
 
 ## Herdr
 

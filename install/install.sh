@@ -55,7 +55,31 @@ else
   echo "==> No host package for '$HOST' (skipping)"
 fi
 
-# --- 5. Post-link steps ------------------------------------------------------
+# --- 5. Omarchy shell plugins ------------------------------------------------
+# Third-party bar plugins are git clones under ~/.config/omarchy/plugins, so they
+# cannot be stowed. Guarded on the target directory rather than trusting
+# `omarchy plugin add` to be idempotent: it has no existing-install check and
+# would re-clone over a working plugin.
+if command -v omarchy-plugin-add >/dev/null; then
+  declare -A OMARCHY_PLUGINS=(
+    [mrpbennett.fortivpn]=https://github.com/mrpbennett/qs-fortivpn.git
+    [joegeary.on-air]=https://github.com/joegeary/omarchy-on-air
+    [io.github.ilyazar.syncthing]=https://github.com/ilyaZar/omarchy-syncthing.git
+  )
+  for id in "${!OMARCHY_PLUGINS[@]}"; do
+    [[ -d "$HOME/.config/omarchy/plugins/$id" ]] && continue
+    echo "==> Adding omarchy plugin $id"
+    omarchy-plugin-add "${OMARCHY_PLUGINS[$id]}" --enable --yes
+  done
+
+  # First-party widgets deliberately switched off, so a rebuilt bar matches.
+  for id in omarchy.active-window omarchy.dropbox omarchy.media \
+            omarchy.microphone omarchy.spacer; do
+    omarchy-plugin-disable "$id" >/dev/null 2>&1 || true
+  done
+fi
+
+# --- 6. Post-link steps ------------------------------------------------------
 # bat will not use the bundled custom theme until its cache is rebuilt.
 if command -v bat >/dev/null; then
   echo "==> Rebuilding bat cache"

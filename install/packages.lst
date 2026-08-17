@@ -23,3 +23,5 @@ libsecret      # secret-tool CLI; the DDNS updater reads its password from the k
                # Usually present as a dependency, listed so a rebuild cannot lose
                # it if that dependency chain changes. gnome-keyring itself is an
                # Omarchy dependency, so it is deliberately not listed here.
+openfortivpn   # Fortinet SSL-VPN client, driven by the fortivpn bar plugin.
+               # The open implementation, not Fortinet's own FortiClient.

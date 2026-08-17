@@ -13,6 +13,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 - [Obsidian vault sync (Syncthing)](#obsidian-vault-sync-syncthing)
 - [GNOME keyring auto-unlock](#gnome-keyring-auto-unlock)
 - [Dynamic DNS](#dynamic-dns)
+- [Omarchy shell plugins](#omarchy-shell-plugins)
 - [Herdr](#herdr)
 - [AI agent instructions](#ai-agent-instructions)
 
@@ -408,6 +409,74 @@ without touching the live record:
 
 That still reads the keyring and fetches the public IP, so it is the fastest way
 to tell a credential problem from a network one.
+
+## Omarchy shell plugins
+
+Bar widgets live as git clones in `~/.config/omarchy/plugins/<id>/`, so `stow`
+cannot express them. [install.sh](install.sh) adds them instead, and also
+re-applies the set of first-party widgets that are deliberately switched off, so
+a rebuilt bar looks like this one rather than stock.
+
+| Plugin id | Upstream | What it does |
+|-----------|----------|--------------|
+| `mrpbennett.fortivpn` | `mrpbennett/qs-fortivpn` | Fortinet SSL-VPN with FortiToken 2FA, from the bar |
+| `joegeary.on-air` | `joegeary/omarchy-on-air` | Turns smart lights red and shows an indicator while in a meeting |
+| `io.github.ilyazar.syncthing` | `ilyaZar/omarchy-syncthing` | Sync health and service control for [Syncthing](#obsidian-vault-sync-syncthing) |
+
+Disabled first-party widgets: `active-window`, `dropbox`, `media`,
+`microphone`, `spacer`.
+
+Useful commands:
+
+```sh
+omarchy-plugin-list --json    # ids, versions, enabled state, firstParty flag
+omarchy-plugin-update <id>
+omarchy-plugin-enable <id>    # --section/--index/--before/--after place it
+omarchy-plugin-disable <id>
+```
+
+> [!NOTE]
+> `omarchy-plugin-add` has no existing-install check, so re-running it over a
+> working plugin re-clones it. `install.sh` guards on the target directory
+> instead of relying on the command to no-op.
+
+### FortiVPN: the parts install.sh cannot do
+
+The plugin needs two root-owned pieces that hold credentials, so they are set up
+by hand and never live in this repo:
+
+1. **A passwordless helper**, so the widget can bring the tunnel up without a
+   sudo prompt. The plugin ships the installer:
+
+   ```sh
+   sudo ~/.config/omarchy/plugins/mrpbennett.fortivpn/scripts/install-passwordless-helper.sh
+   ```
+
+   That installs `/usr/local/libexec/omarchy-fortivpn-helper` and a `visudo -cf`
+   validated `/etc/sudoers.d/omarchy-fortivpn` (mode 440) granting NOPASSWD on
+   just that helper's `start`/`stop`/`reset` verbs.
+
+2. **The gateway config** at `/etc/openfortivpn/omarchy.conf`, `root:root` mode
+   600, written through the bar widget rather than by hand. Each field is patched
+   individually over the helper's **stdin**, so the password never appears in
+   `ps` and one edit cannot clobber another field.
+
+The `openfortivpn` package is in [packages.lst](packages.lst). Note it is the
+open implementation, not Fortinet's own FortiClient.
+
+Connecting spawns a transient unit rather than a bare background process, which
+is also how you check it:
+
+```sh
+systemctl is-active omarchy-fortivpn.service
+journalctl -u omarchy-fortivpn.service -n 20
+```
+
+> [!IMPORTANT]
+> The FortiToken OTP is a 30-60s code and is never stored, but it *is* visible in
+> the `openfortivpn` process argv for the life of the session. There is no way to
+> hand the binary a fresh one-time code non-interactively without that. Fine on a
+> personal desktop, worth knowing on a shared box.
 
 ## Herdr
 

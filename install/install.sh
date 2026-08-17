@@ -55,7 +55,20 @@ else
   echo "==> No host package for '$HOST' (skipping)"
 fi
 
-# --- 5. mise-managed toolchains ----------------------------------------------
+# --- 5. Claude Code settings --------------------------------------------------
+# Deliberately copied, not stowed. Claude Code rewrites settings.json in place, so
+# a symlink here gets replaced by a regular file and the repo silently stops
+# tracking it - which is exactly what happened to the old repo's version. Copying
+# only when absent means Claude Code owns the live file and this is the seed for a
+# fresh machine.
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+if [[ ! -f $CLAUDE_SETTINGS ]]; then
+  echo "==> Seeding ~/.claude/settings.json"
+  mkdir -p "$HOME/.claude"
+  install -m 644 "$DOTFILES/install/claude-settings.json" "$CLAUDE_SETTINGS"
+fi
+
+# --- 6. mise-managed toolchains ----------------------------------------------
 # mise itself comes from Omarchy, but its pins live in this repo
 # (home/.config/mise/config.toml) and nothing installs them automatically. Without
 # this, a rebuilt box has mise and no dotnet, java, node, gh or python.
@@ -64,7 +77,7 @@ if command -v mise >/dev/null && [[ -f "$HOME/.config/mise/config.toml" ]]; then
   mise install || echo "!! mise install failed" >&2
 fi
 
-# --- 6. Binaries with no Arch package ----------------------------------------
+# --- 7. Binaries with no Arch package ----------------------------------------
 # monarchmoney-cli ships as a GitHub release binary and is not in the repos or the
 # AUR, so packages.lst cannot express it. Fetched rather than committed: a 14M
 # binary does not belong in a dotfiles repo. Non-fatal, since a rebuild should not
@@ -100,7 +113,7 @@ if [[ ! -x "$HOME/.local/bin/monarch" ]]; then
   install_monarch || echo "    failed; install by hand from thedavidweng/monarchmoney-cli" >&2
 fi
 
-# --- 7. Omarchy shell plugins ------------------------------------------------
+# --- 8. Omarchy shell plugins ------------------------------------------------
 # Third-party bar plugins are git clones under ~/.config/omarchy/plugins, so they
 # cannot be stowed. Guarded on the target directory rather than trusting
 # `omarchy plugin add` to be idempotent: it has no existing-install check and
@@ -124,7 +137,7 @@ if command -v omarchy-plugin-add >/dev/null; then
   done
 fi
 
-# --- 8. Post-link steps ------------------------------------------------------
+# --- 9. Post-link steps ------------------------------------------------------
 # bat will not use the bundled custom theme until its cache is rebuilt.
 if command -v bat >/dev/null; then
   echo "==> Rebuilding bat cache"

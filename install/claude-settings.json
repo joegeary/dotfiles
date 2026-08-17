@@ -20,6 +20,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "claude-opus-4-8",
   "hooks": {
     "SessionStart": [
       {
@@ -84,11 +85,11 @@
   "effortLevel": "high",
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
-  "showThinkingSummaries": true,
+  "showThinkingSummaries": false,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "editorMode": "vim",
-  "verbose": true,
+  "verbose": false,
   "autoCompactEnabled": false,
   "switchModelsOnFlag": false,
   "teammateMode": "auto",

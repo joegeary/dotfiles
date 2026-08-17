@@ -4,11 +4,24 @@
 # credential helper path and the [user] identity). This file is included at the
 # end of it, so anything set here wins.
 #
-# GPG signing is deliberately absent until the key is restored; enabling
-# commit.gpgsign without the key breaks every commit.
+# Signing is on. It needs the secret key for 6B0C1DF... in ~/.gnupg, which is not
+# in this repo and never should be. A machine without that key must comment out
+# the [commit] block below or every commit fails.
+#
+# The key UID email must match user.email (joegeary@gmail.com) or GitHub shows
+# the commit as unverified even though the signature is valid.
 
 [include]
   path = ~/.config/git/themes/catppuccin.gitconfig
+
+[user]
+  signingkey = 6B0C1DFA0A207929FD7DFC3D5EC4BE6DF79F37A3
+
+[commit]
+  gpgsign = true
+
+[tag]
+  gpgsign = true
 
 [safe]
   directory = ~/dev

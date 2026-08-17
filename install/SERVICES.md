@@ -257,8 +257,8 @@ unlocked. Two separate defects stop that from happening on a stock install, and
 both are silent: things appear to work until a password prompt shows up, or an
 unattended timer fails because nothing is there to answer one.
 
-`gnome-keyring` needs no entry in [packages.lst](packages.lst); it is a
-dependency of `omarchy` itself. `libsecret` (for `secret-tool`) is listed.
+Neither `gnome-keyring` nor `libsecret` (for `secret-tool`) needs an entry in
+[packages.lst](packages.lst) - Omarchy installs both.
 
 ### 1. PAM never captures the login password
 
@@ -547,10 +547,10 @@ Terminal workspace manager for AI coding agents. Reached over
 enabled on this machine at all.
 
 > [!NOTE]
-> This used to be a self-updating binary at `~/.local/bin/herdr`, which is why it
-> was originally left out of [packages.lst](packages.lst). It is now a package at
-> `/usr/bin/herdr`, so it **is** listed there and updates with the system. `herdr
-> update` is no longer the way to upgrade it.
+> This used to be a self-updating binary at `~/.local/bin/herdr`. It is a package
+> at `/usr/bin/herdr` now and updates with the system, so `herdr update` is no
+> longer the way to upgrade it. It still needs no [packages.lst](packages.lst)
+> entry, because Omarchy installs it.
 
 ```sh
 herdr channel set <stable|preview>    # switch release channel
@@ -633,8 +633,8 @@ writes to the script's stdin. Plan usage is read from that payload's
 `rate_limits`, which is the real server-side number, so nothing is estimated
 and nothing is fetched over the network.
 
-Requires `jq`, which is in [packages.lst](packages.lst). No node, no npm
-package, no cache files, no network.
+Requires `jq`, which Omarchy already installs. No node, no npm package, no cache
+files, no network.
 
 It began as the `ccstatusline` npm package, then as a vendored copy of
 [Gui-Gou/claude-statusline-burnrate](https://github.com/Gui-Gou/claude-statusline-burnrate).

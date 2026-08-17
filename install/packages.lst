@@ -4,9 +4,16 @@
 # is installed, with a comment saying why. This file plus install.sh must be
 # enough to rebuild the box. One package per line; `# comment` is ignored.
 #
-# Omarchy already ships: hyprland, waybar-equivalents, nvim (LazyVim), lazygit,
-# ghostty, btop, fastfetch, tmux, starship, gh, yay, mise, zoxide, fzf, fd, bat,
-# eza, imv, mpv. Do NOT list those here.
+# RULE: do NOT list anything Omarchy already installs. Check before adding,
+# rather than guessing from memory or from `pacman -Qi` install reason (Omarchy's
+# installer runs pacman itself, so its packages also show as "explicitly
+# installed"). The authoritative list is Omarchy's own:
+#
+#   grep -qxF <pkg> <(cat /usr/share/omarchy/install/*.packages | tr -d ' ')
+#
+# That covers ~206 packages including hyprland, ghostty, nvim, lazygit, btop,
+# fastfetch, starship, gh, yay, mise, zoxide, fzf, fd, bat, eza, mpv, jq, gum,
+# gnome-keyring, libsecret, herdr and ufw.
 
 # --- Core: required for this repo to function ---
 stow           # symlink farm manager for these dotfiles
@@ -19,13 +26,7 @@ k9s            # kubernetes TUI; aliases/plugins/skin in home/.config/k9s
 git-delta      # diff pager; required by core.pager in overrides.gitconfig
 
 # --- Services (see SERVICES.md) ---
-libsecret      # secret-tool CLI; the DDNS updater reads its password from the keyring.
-               # Usually present as a dependency, listed so a rebuild cannot lose
-               # it if that dependency chain changes. gnome-keyring itself is an
-               # Omarchy dependency, so it is deliberately not listed here.
+tailscale      # tailnet; every other service here addresses peers over it
+syncthing      # Obsidian vault replication between desktop, laptop and phone
 openfortivpn   # Fortinet SSL-VPN client, driven by the fortivpn bar plugin.
                # The open implementation, not Fortinet's own FortiClient.
-herdr          # terminal workspace manager for AI agents; now a package, so it
-               # no longer self-updates from ~/.local/bin (see SERVICES.md)
-ufw            # firewall; default-DROP inbound. SSH needs an explicit rule,
-               # see the sshd section in SERVICES.md

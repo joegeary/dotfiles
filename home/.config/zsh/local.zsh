@@ -80,3 +80,39 @@ cpr() {
   cd "../$branch" || return
   echo "Switched to new worktree for PR #$pr: $branch"
 }
+
+# repo - fuzzy-pick a git repo under ~/dev, enter it, fetch, and show its stats.
+# Both of these need onefetch (git repo stats; complementary to fastfetch's
+# machine stats), which is in install/packages.lst. Defined only when it is
+# present, so a machine without it gets no half-working command.
+if command -v onefetch >/dev/null; then
+  # fastfetch outside a repo, onefetch inside one.
+  show_fetch() {
+    if [[ -d .git ]]; then onefetch; else fastfetch; fi
+  }
+
+  repo() {
+    # --prune stops fd descending into a repo once its .git is found; the awk
+    # drops any path under an already-seen repo, so nested checkouts and
+    # worktrees do not each show up as separate entries.
+    local selected=$(fd '^\.git$' "${HOME}/dev" --type=directory --type=file --hidden --prune 2>/dev/null \
+      | sed "s|/\.git/\?$||" \
+      | sort \
+      | awk '{
+          for (p in seen) if (index($0, p "/") == 1) next
+          seen[$0] = 1
+          print
+        }' \
+      | sed "s|^${HOME}/dev/||" \
+      | fzf --preview "onefetch ${HOME}/dev/{}" --preview-window up)
+
+    [[ -z "$selected" ]] && { echo "Repository not found"; return 1; }
+
+    cd "${HOME}/dev/$selected" || return 1
+    if [[ -d .git ]]; then
+      echo "Fetching origin"
+      git fetch origin
+      onefetch
+    fi
+  }
+fi

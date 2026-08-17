@@ -24,6 +24,9 @@ atuin          # shell history search; config + theme in home/.config/atuin
 zsh-autosuggestions  # grey inline history suggestion; omarchy-zsh does not ship it
 k9s            # kubernetes TUI; aliases/plugins/skin in home/.config/k9s
 git-delta      # diff pager; required by core.pager in overrides.gitconfig
+onefetch       # git repo stats; the repo/show_fetch functions in local.zsh are
+               # defined only when it is present. Complements fastfetch (machine
+               # stats), it does not replace it.
 
 # --- Services (see SERVICES.md) ---
 tailscale      # tailnet; every other service here addresses peers over it

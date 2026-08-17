@@ -14,6 +14,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 - [GNOME keyring auto-unlock](#gnome-keyring-auto-unlock)
 - [Dynamic DNS](#dynamic-dns)
 - [Omarchy shell plugins](#omarchy-shell-plugins)
+- [Inbound SSH](#inbound-ssh)
 - [Herdr](#herdr)
 - [AI agent instructions](#ai-agent-instructions)
 
@@ -478,14 +479,80 @@ journalctl -u omarchy-fortivpn.service -n 20
 > hand the binary a fresh one-time code non-interactively without that. Fine on a
 > personal desktop, worth knowing on a shared box.
 
-## Herdr
+## Inbound SSH
 
-Terminal workspace manager for AI coding agents. The binary lives at
-`~/.local/bin/herdr` and updates itself, so it is not in
-[packages.lst](packages.lst):
+Enabled so the desktop can be driven remotely from the laptop, mainly to run
+[Herdr](#herdr) sessions. Reached over the tailnet, not the open LAN.
+
+Three pieces, and **all three are required** - the middle one is the easy one to
+miss, because without it `sshd` starts, listens, and every connection is silently
+dropped with no log entry on this side.
+
+### 1. Host keys
+
+Restore the machine's previous host keys rather than letting a rebuild present
+new ones, so clients that already have it in `known_hosts` do not report a
+changed host key. Back up the fresh install's own set first:
 
 ```sh
-herdr update                          # update in place
+sudo mkdir -p /etc/ssh/host-keys-freshinstall
+sudo cp -a /etc/ssh/ssh_host_* /etc/ssh/host-keys-freshinstall/
+# then restore, private keys 600 and .pub 644
+```
+
+### 2. The firewall rule
+
+`ufw` is active with `DEFAULT_INPUT_POLICY="DROP"`, so SSH needs an explicit
+allow. Scope it to the tailnet interface rather than opening the port on every
+network the machine joins:
+
+```sh
+sudo ufw allow in on tailscale0 to any port 22 proto tcp comment 'ssh over tailnet'
+sudo ufw --force reload
+sudo ufw status verbose
+```
+
+Add `sudo ufw allow 22/tcp` as well only if SSH from the local LAN is wanted.
+
+### 3. sshd itself
+
+The hardening drop-in at `/etc/ssh/sshd_config.d/10-hardening.conf` sets
+`PasswordAuthentication no`, `PermitRootLogin no`, and 30s client keepalives.
+Validate before enabling, since a bad drop-in stops sshd from starting:
+
+```sh
+sudo sshd -t
+sudo systemctl enable --now sshd
+ss -lntp | grep ':22 '
+```
+
+> [!IMPORTANT]
+> With password auth off, `ssh-copy-id` cannot bootstrap a new client - it needs
+> one password login to work. Either append the client's public key to
+> `~/.ssh/authorized_keys` directly, or comment the `PasswordAuthentication` line,
+> `systemctl reload sshd`, run `ssh-copy-id`, then restore it and reload again.
+> The comment at the top of the drop-in describes that staged order.
+
+Rollback is two commands:
+
+```sh
+sudo systemctl disable --now sshd
+sudo ufw delete allow in on tailscale0 to any port 22 proto tcp
+```
+
+## Herdr
+
+Terminal workspace manager for AI coding agents. Reached over
+[SSH](#inbound-ssh) from the laptop, which is the main reason inbound SSH is
+enabled on this machine at all.
+
+> [!NOTE]
+> This used to be a self-updating binary at `~/.local/bin/herdr`, which is why it
+> was originally left out of [packages.lst](packages.lst). It is now a package at
+> `/usr/bin/herdr`, so it **is** listed there and updates with the system. `herdr
+> update` is no longer the way to upgrade it.
+
+```sh
 herdr channel set <stable|preview>    # switch release channel
 ```
 

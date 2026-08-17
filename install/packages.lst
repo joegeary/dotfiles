@@ -25,3 +25,7 @@ libsecret      # secret-tool CLI; the DDNS updater reads its password from the k
                # Omarchy dependency, so it is deliberately not listed here.
 openfortivpn   # Fortinet SSL-VPN client, driven by the fortivpn bar plugin.
                # The open implementation, not Fortinet's own FortiClient.
+herdr          # terminal workspace manager for AI agents; now a package, so it
+               # no longer self-updates from ~/.local/bin (see SERVICES.md)
+ufw            # firewall; default-DROP inbound. SSH needs an explicit rule,
+               # see the sshd section in SERVICES.md

@@ -96,6 +96,7 @@ worktrunk-bin  # git worktree CLI aimed at running agents in parallel
 
 # --- GUI apps ---
 zen-browser-bin  # primary browser
+visual-studio-code-bin  # editor
 remote-desktop-manager  # RDP/remote sessions; .rdm data source restored separately
 bitwarden      # password manager
 bitwarden-cli  # bw

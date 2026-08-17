@@ -14,6 +14,9 @@
 # That covers ~206 packages including hyprland, ghostty, nvim, lazygit, btop,
 # fastfetch, starship, gh, yay, mise, zoxide, fzf, fd, bat, eza, mpv, jq, gum,
 # gnome-keyring, libsecret, herdr and ufw.
+#
+# Also not listed, because mise supplies them: dotnet, java, node, gh, python.
+# Nor uv, playwright or opencode, which are already on PATH from Omarchy.
 
 # --- Core: required for this repo to function ---
 stow           # symlink farm manager for these dotfiles
@@ -33,3 +36,77 @@ tailscale      # tailnet; every other service here addresses peers over it
 syncthing      # Obsidian vault replication between desktop, laptop and phone
 openfortivpn   # Fortinet SSL-VPN client, driven by the fortivpn bar plugin.
                # The open implementation, not Fortinet's own FortiClient.
+
+# --- CLI: general ---
+direnv         # per-directory env; .local/share/direnv/allow is restored separately
+dust           # du with a tree view
+git-filter-repo  # history rewriting, used when scrubbing repos
+go-task        # Taskfile runner
+just           # command runner
+yq             # YAML/JSON query, the jq companion
+tealdeer       # tldr client
+cloc           # line counting
+figlet         # banner text
+ccze           # log colouriser
+thefuck        # corrects the previous command
+wget           # curl is shipped; wget is not, and scripts still expect it
+nano           # fallback editor for anything that ignores $EDITOR
+vim            # ditto; nvim is shipped but plain vim is not
+
+# --- CLI: network / hardware diagnostics ---
+bind           # dig and friends; DDNS and DNS debugging
+traceroute     # path tracing
+sshfs          # mount remote filesystems over ssh
+smartmontools  # disk health
+dmidecode      # hardware inventory
+lsof           # open files; also an optional dep of remote-desktop-manager
+radeontop      # AMD GPU usage; this box is a Navi 22 (RX 6700 XT class)
+
+# --- Kubernetes / cloud / certs -----------------------------------------------
+# Phase 2 restored the config for all of these (.kube/config, .talos/config,
+# .azure/, .cloudflared/, the mkcert root CA) and none of it could be tested
+# because the binaries were absent.
+kubectl        # cluster CLI; .kube/config restored
+kustomize      # manifest overlays
+kubeconform    # manifest schema validation
+helm           # charts
+helmfile       # declarative helm releases
+fluxcd         # GitOps controller CLI
+argocd         # GitOps CD CLI
+cmctl          # cert-manager CLI
+talosctl       # Talos cluster CLI; .talos/config restored (context `devel`)
+talhelper      # Talos config templating
+azure-cli      # az; .azure/ session restored
+cloudflared    # tunnel client; .cloudflared/ certs restored
+mkcert         # local dev CA. After installing, run `mkcert -install` or nothing
+               # trusts the restored rootCA.
+
+# --- Databases ---
+pgcli          # postgres REPL; a pgcli credential is in the login keyring
+sqlcl          # Oracle SQL CLI
+oracle-instantclient-basic  # required by sqlcl
+lazyssh        # ssh host launcher; .lazyssh/metadata.json restored
+
+# --- Language runtimes not covered by mise ---
+rust           # rustc/cargo; mise does not manage rust here
+bun            # JS runtime/bundler
+maven          # mvn; mise provides java but not maven
+
+# --- Dev tooling ---
+worktrunk-bin  # git worktree CLI aimed at running agents in parallel
+
+# --- GUI apps ---
+google-chrome  # secondary browser (Zen is primary)
+zoom           # meetings
+visual-studio-code-bin  # editor
+zed            # editor
+cursor-bin     # editor
+gimp           # image editing
+onlyoffice-bin # documents
+gnome-calculator
+pavucontrol    # per-sink audio control
+localsend-bin  # LAN file transfer
+etcher-bin     # write bootable USB images
+solaar         # Logitech device manager
+kdeconnect     # phone integration; paired-device keys restored separately
+libappindicator-gtk3  # tray icon support for remote-desktop-manager

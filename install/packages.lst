@@ -22,6 +22,7 @@
 # --- Core: required for this repo to function ---
 stow           # symlink farm manager for these dotfiles
 omarchy-zsh    # zsh layer for Omarchy; owns ~/.zshrc and ~/.bashrc
+ghostty        # the terminal. Omarchy ships foot, not this.
 
 # --- CLI tools whose config this repo carries ---
 atuin          # shell history search; config + theme in home/.config/atuin
@@ -94,6 +95,14 @@ maven          # mvn; mise provides java but not maven
 worktrunk-bin  # git worktree CLI aimed at running agents in parallel
 
 # --- GUI apps ---
+zen-browser-bin  # primary browser
+remote-desktop-manager  # RDP/remote sessions; .rdm data source restored separately
+bitwarden      # password manager
+bitwarden-cli  # bw
+teams-for-linux-bin  # work chat
+spotify        # music
+voxtype-bin    # dictation; installs its own voxtype.service user unit
+bolt-launcher  # RuneScape launcher
 zoom           # meetings
 gimp           # image editing
 onlyoffice-bin # documents

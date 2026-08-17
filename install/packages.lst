@@ -46,7 +46,6 @@ git-filter-repo  # history rewriting, used when scrubbing repos
 go-task        # Taskfile runner
 just           # command runner
 yq             # YAML/JSON query, the jq companion
-tealdeer       # tldr client
 cloc           # line counting
 figlet         # banner text
 ccze           # log colouriser

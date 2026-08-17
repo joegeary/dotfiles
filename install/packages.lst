@@ -51,7 +51,6 @@ ccze           # log colouriser
 thefuck        # corrects the previous command
 wget           # curl is shipped; wget is not, and scripts still expect it
 nano           # fallback editor for anything that ignores $EDITOR
-vim            # ditto; nvim is shipped but plain vim is not
 
 # --- CLI: network / hardware diagnostics ---
 bind           # dig and friends; DDNS and DNS debugging
@@ -60,7 +59,6 @@ sshfs          # mount remote filesystems over ssh
 smartmontools  # disk health
 dmidecode      # hardware inventory
 lsof           # open files; also an optional dep of remote-desktop-manager
-radeontop      # AMD GPU usage; this box is a Navi 22 (RX 6700 XT class)
 
 # --- Kubernetes / cloud / certs -----------------------------------------------
 # Phase 2 restored the config for all of these (.kube/config, .talos/config,
@@ -71,7 +69,6 @@ kustomize      # manifest overlays
 kubeconform    # manifest schema validation
 helm           # charts
 helmfile       # declarative helm releases
-fluxcd         # GitOps controller CLI
 argocd         # GitOps CD CLI
 cmctl          # cert-manager CLI
 talosctl       # Talos cluster CLI; .talos/config restored (context `devel`)
@@ -96,16 +93,9 @@ maven          # mvn; mise provides java but not maven
 worktrunk-bin  # git worktree CLI aimed at running agents in parallel
 
 # --- GUI apps ---
-google-chrome  # secondary browser (Zen is primary)
 zoom           # meetings
-visual-studio-code-bin  # editor
-zed            # editor
-cursor-bin     # editor
 gimp           # image editing
 onlyoffice-bin # documents
-gnome-calculator
-pavucontrol    # per-sink audio control
-localsend-bin  # LAN file transfer
 etcher-bin     # write bootable USB images
 solaar         # Logitech device manager
 kdeconnect     # phone integration; paired-device keys restored separately

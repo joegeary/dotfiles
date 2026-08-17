@@ -20,6 +20,39 @@ export PATH="$HOME/.dotnet/tools:$PATH"
 [[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
   source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
+# --- Shell integrations not shipped by omarchy-zsh ---
+# omarchy-zsh already initializes fzf, zoxide, starship and mise. It does not
+# initialize these, and each one has restored state that does nothing without
+# its hook, so leaving them out quietly wastes the restore.
+#
+# kubectl deliberately has no line here: /usr/share/zsh/site-functions/_kubectl
+# is already on fpath, so `source <(kubectl completion zsh)` would cost ~56ms
+# at every startup to duplicate what the completion system has for free.
+
+# atuin takes over Ctrl-R and Up, replacing omarchy-zsh's fzf-history-widget.
+# That override is the point: it is what the 16,660-command history and the
+# vim-insert keymap in atuin's config are for. It also exports $ATUIN_SESSION,
+# without which `atuin search` errors out. Works because this file is sourced
+# from the end of ~/.zshrc, after omarchy-zsh has bound its own widgets.
+command -v atuin >/dev/null && eval "$(atuin init zsh)"
+
+# Per-directory env; the 13 restored entries in ~/.local/share/direnv/allow
+# are inert without this.
+command -v direnv >/dev/null && eval "$(direnv hook zsh)"
+
+# worktrunk, for the per-project worktree templates in ~/.config/worktrunk.
+command -v wt >/dev/null && eval "$(command wt config shell init zsh)"
+
+# thefuck costs ~105ms to initialize, about as much as the whole rest of the
+# shell, so it is loaded on first use rather than at every startup.
+if command -v thefuck >/dev/null; then
+  fuck() {
+    unfunction fuck
+    eval "$(thefuck --alias)"
+    eval fuck "$@"
+  }
+fi
+
 # --- Keybindings (Omarchy binds the arrows; these cover Home/End/Delete) ---
 bindkey "^[[H" beginning-of-line
 bindkey "^[[F" end-of-line

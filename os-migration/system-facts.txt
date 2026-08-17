@@ -1,0 +1,4 @@
+hostname: sigint
+shell: /usr/bin/zsh
+kernel: 7.1.6-arch1-1
+captured: Fri Aug 14 08:52:25 PM EDT 2026

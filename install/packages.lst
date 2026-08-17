@@ -1,0 +1,13 @@
+# Packages installed on top of a stock Omarchy install.
+#
+# RULE: every package installed on the machine gets added here, at the time it
+# is installed, with a comment saying why. This file plus install.sh must be
+# enough to rebuild the box. One package per line; `# comment` is ignored.
+#
+# Omarchy already ships: hyprland, waybar-equivalents, nvim (LazyVim), lazygit,
+# ghostty, btop, fastfetch, tmux, starship, gh, yay, mise, zoxide, fzf, fd, bat,
+# eza, imv, mpv. Do NOT list those here.
+
+# --- Core: required for this repo to function ---
+stow           # symlink farm manager for these dotfiles
+omarchy-zsh    # zsh layer for Omarchy; owns ~/.zshrc and ~/.bashrc

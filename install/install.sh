@@ -34,7 +34,17 @@ if ! grep -qF "$HOOK" "$HOME/.zshrc"; then
   printf '\n%s\n' "$HOOK" >>"$HOME/.zshrc"
 fi
 
-# --- 3. Symlinks -------------------------------------------------------------
+# --- 3. Git --------------------------------------------------------------
+# Same pattern as the shell: Omarchy's ~/.config/git/config stays unmanaged
+# because it holds this machine's mise-pinned gh credential path and the user
+# identity. We append an include so our overrides load last and win.
+GITCONF="$HOME/.config/git/config"
+if [[ -f $GITCONF ]] && ! grep -q 'overrides.gitconfig' "$GITCONF"; then
+  echo "==> Including overrides.gitconfig from ~/.config/git/config"
+  printf '\n[include]\n\tpath = ~/.config/git/overrides.gitconfig\n' >>"$GITCONF"
+fi
+
+# --- 4. Symlinks -------------------------------------------------------------
 echo "==> Stowing home"
 stow -d "$DOTFILES" -t "$HOME" home
 
@@ -43,6 +53,13 @@ if [[ -d "$DOTFILES/hosts/$HOST" ]]; then
   stow -d "$DOTFILES/hosts" -t "$HOME" "$HOST"
 else
   echo "==> No host package for '$HOST' (skipping)"
+fi
+
+# --- 5. Post-link steps ------------------------------------------------------
+# bat will not use the bundled custom theme until its cache is rebuilt.
+if command -v bat >/dev/null; then
+  echo "==> Rebuilding bat cache"
+  bat cache --build >/dev/null
 fi
 
 echo

@@ -11,3 +11,8 @@
 # --- Core: required for this repo to function ---
 stow           # symlink farm manager for these dotfiles
 omarchy-zsh    # zsh layer for Omarchy; owns ~/.zshrc and ~/.bashrc
+
+# --- CLI tools whose config this repo carries ---
+atuin          # shell history search; config + theme in home/.config/atuin
+k9s            # kubernetes TUI; aliases/plugins/skin in home/.config/k9s
+git-delta      # diff pager; required by core.pager in overrides.gitconfig

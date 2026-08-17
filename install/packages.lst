@@ -11,9 +11,10 @@
 #
 #   grep -qxF <pkg> <(cat /usr/share/omarchy/install/*.packages | tr -d ' ')
 #
-# That covers ~206 packages including hyprland, ghostty, nvim, lazygit, btop,
+# That covers ~206 packages including hyprland, foot, nvim, lazygit, btop,
 # fastfetch, starship, gh, yay, mise, zoxide, fzf, fd, bat, eza, mpv, jq, gum,
-# gnome-keyring, libsecret, herdr and ufw.
+# gnome-keyring, libsecret, herdr and ufw. Note the terminal it ships is foot,
+# NOT ghostty.
 #
 # Also not listed, because mise supplies them: dotnet, java, node, gh, python.
 # Nor uv, playwright or opencode, which are already on PATH from Omarchy.

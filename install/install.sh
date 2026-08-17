@@ -55,7 +55,43 @@ else
   echo "==> No host package for '$HOST' (skipping)"
 fi
 
-# --- 5. Omarchy shell plugins ------------------------------------------------
+# --- 5. Binaries with no Arch package ----------------------------------------
+# monarchmoney-cli ships as a GitHub release binary and is not in the repos or the
+# AUR, so packages.lst cannot express it. Fetched rather than committed: a 14M
+# binary does not belong in a dotfiles repo. Non-fatal, since a rebuild should not
+# stop over one optional CLI.
+install_monarch() {
+  # The linux_amd64 assets are .apk/.deb/.rpm packages; the raw binary is only in
+  # the tarball, so match that name exactly rather than the first "linux" hit.
+  local repo=thedavidweng/monarchmoney-cli asset=monarch_linux_x86_64.tar.gz
+  local tmp url
+  tmp=$(mktemp -d) || return 1
+  trap 'rm -rf "$tmp"' RETURN
+
+  url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
+    | grep -oE "\"browser_download_url\": *\"[^\"]*$asset\"" | head -1 | cut -d'"' -f4) || return 1
+  [[ -n $url ]] || return 1
+
+  curl -fsSL "$url" -o "$tmp/$asset" || return 1
+  # Verify before executing anything: checksums.txt covers every asset.
+  if curl -fsSL "${url%/*}/checksums.txt" -o "$tmp/checksums.txt"; then
+    (cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum -c --status) || {
+      echo "    checksum mismatch, refusing to install" >&2; return 1; }
+  else
+    echo "    warning: checksums.txt unavailable, skipping verification" >&2
+  fi
+
+  tar -xzf "$tmp/$asset" -C "$tmp" monarch || return 1
+  mkdir -p "$HOME/.local/bin"
+  install -m 755 "$tmp/monarch" "$HOME/.local/bin/monarch"
+}
+
+if [[ ! -x "$HOME/.local/bin/monarch" ]]; then
+  echo "==> Fetching monarchmoney-cli"
+  install_monarch || echo "    failed; install by hand from thedavidweng/monarchmoney-cli" >&2
+fi
+
+# --- 6. Omarchy shell plugins ------------------------------------------------
 # Third-party bar plugins are git clones under ~/.config/omarchy/plugins, so they
 # cannot be stowed. Guarded on the target directory rather than trusting
 # `omarchy plugin add` to be idempotent: it has no existing-install check and
@@ -79,7 +115,7 @@ if command -v omarchy-plugin-add >/dev/null; then
   done
 fi
 
-# --- 6. Post-link steps ------------------------------------------------------
+# --- 7. Post-link steps ------------------------------------------------------
 # bat will not use the bundled custom theme until its cache is rebuilt.
 if command -v bat >/dev/null; then
   echo "==> Rebuilding bat cache"

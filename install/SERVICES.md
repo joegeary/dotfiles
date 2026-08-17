@@ -251,8 +251,8 @@ edits the shared list and disables it everywhere. Add
 
 ## GNOME keyring auto-unlock
 
-Anything that stores a password in the Secret Service — browsers, the `gh` CLI,
-Bitwarden, the [DDNS updater](#dynamic-dns) — depends on the keyring being
+Anything that stores a password in the Secret Service - browsers, the `gh` CLI,
+Bitwarden, the [DDNS updater](#dynamic-dns) - depends on the keyring being
 unlocked. Two separate defects stop that from happening on a stock install, and
 both are silent: things appear to work until a password prompt shows up, or an
 unattended timer fails because nothing is there to answer one.
@@ -310,7 +310,7 @@ busctl --user get-property org.freedesktop.secrets \
 ```
 
 Repoint the alias through D-Bus rather than editing
-`~/.local/share/keyrings/default` by hand — the daemon reads that file only at
+`~/.local/share/keyrings/default` by hand - the daemon reads that file only at
 startup, so `SetAlias` is what applies immediately (it writes the file too):
 
 ```sh
@@ -337,7 +337,7 @@ busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
 ## Dynamic DNS
 
 Keeps a DnsMadeEasy A record pointed at this machine's public IP, which is
-dynamic. **Remote access depends on it** — when the ISP hands out a new address
+dynamic. **Remote access depends on it** - when the ISP hands out a new address
 and the record goes stale, there is no way back in until it is fixed locally.
 
 The updater is a small shell script maintained in its own repository, with its
@@ -362,7 +362,7 @@ Omit `--password` and it prompts with echo off, which keeps the secret out of
 | Path | Contents |
 |------|----------|
 | `~/.local/state/ddns/ddns.sh`, `ddns_lib.sh` | The updater (mode 700) |
-| `~/.local/state/ddns/ddns.config` | Record ID, endpoint URLs, last-seen IP, status (mode 600) — **no credentials** |
+| `~/.local/state/ddns/ddns.config` | Record ID, endpoint URLs, last-seen IP, status (mode 600) - **no credentials** |
 | `~/.local/state/ddns/ddns.log` | Append-only run log |
 | `~/.config/systemd/user/ddns.{service,timer}` | 15 minute schedule, `Persistent=true` |
 

@@ -10,14 +10,22 @@ Noctalia + a much larger config surface) is preserved on the
 ## Philosophy
 
 Omarchy already ships a curated desktop, shell, editor, and terminal stack. This
-repo holds **only the delta** on top of that — never a fork of what Omarchy
+repo holds **only the delta** on top of that, never a fork of what Omarchy
 provides. Concretely:
 
-- Hyprland: only the override files Omarchy sources, never the base config.
-- zsh: `omarchy-zsh` owns `~/.zshrc`; our customizations live in
-  `~/.config/zsh/local.zsh`, sourced by a one-line hook.
+- Hyprland: only the override files Omarchy sources, never the base config. The
+  seven that are byte-identical to stock stay unmanaged, so Omarchy keeps
+  updating them.
+- Where Omarchy owns a file outright, it stays unmanaged and we append a
+  one-line include pointing at a stowed override, so ours loads last and wins.
+  Three files work this way: `~/.zshrc` to `~/.config/zsh/local.zsh`,
+  `~/.config/git/config` to `overrides.gitconfig`, and
+  `~/.config/ghostty/config` to `overrides.conf`. `install.sh` re-adds each hook
+  if the package ever resets the file.
 - Neovim: stock Omarchy LazyVim, unmodified.
-- Anything Omarchy installs by default is not listed in `packages.lst`.
+- Anything Omarchy installs by default is not listed in `packages.lst`. Check
+  with `cat /usr/share/omarchy/install/*.packages`, and check `provides` and
+  `conflicts` too, not just the name.
 
 Everything installed on the machine is recorded in `install/packages.lst` (with a
 reason) or `install/SERVICES.md`, so the repo alone is enough to rebuild a box.
@@ -37,7 +45,7 @@ express (Tailscale, Syncthing, DDNS, printing).
 
 | Path | Purpose |
 |------|---------|
-| `home/` | stow package symlinked into `~` — shared by every machine |
+| `home/` | stow package symlinked into `~` - shared by every machine |
 | `hosts/<hostname>/` | per-machine stow package (monitor layout, etc.) |
 | `install/` | bootstrap script, package list, service runbook |
 | `os-migration/` | inventory + scripts from the pre-Omarchy-4 migration |

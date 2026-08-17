@@ -50,6 +50,12 @@
     "i-have-adhd@i-have-adhd": true
   },
   "extraKnownMarketplaces": {
+    "oncourse-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "oncoursesystems/claude-code"
+      }
+    },
     "anthropic-agent-skills": {
       "source": {
         "source": "github",

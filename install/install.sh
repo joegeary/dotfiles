@@ -44,7 +44,19 @@ if [[ -f $GITCONF ]] && ! grep -q 'overrides.gitconfig' "$GITCONF"; then
   printf '\n[include]\n\tpath = ~/.config/git/overrides.gitconfig\n' >>"$GITCONF"
 fi
 
-# --- 4. Symlinks -------------------------------------------------------------
+# --- 4. Ghostty --------------------------------------------------------------
+# Third time for this pattern. Omarchy ships ~/.config/ghostty/config as a plain
+# file it keeps updating, so we leave it unmanaged and append a config-file
+# include: ghostty loads an included file *after* the one naming it, so
+# overrides.conf wins. The `?` marks it optional, so a box that has not stowed
+# yet still gets a working terminal - which is what you would fix it from.
+GHOSTTYCONF="$HOME/.config/ghostty/config"
+if [[ -f $GHOSTTYCONF ]] && ! grep -q 'overrides.conf' "$GHOSTTYCONF"; then
+  echo "==> Including overrides.conf from ~/.config/ghostty/config"
+  printf '\n# Personal overrides, loaded last so they win. Managed in ~/dotfiles.\nconfig-file = ?"~/.config/ghostty/overrides.conf"\n' >>"$GHOSTTYCONF"
+fi
+
+# --- 5. Symlinks -------------------------------------------------------------
 echo "==> Stowing home"
 stow -d "$DOTFILES" -t "$HOME" home
 
@@ -55,7 +67,7 @@ else
   echo "==> No host package for '$HOST' (skipping)"
 fi
 
-# --- 5. Claude Code settings --------------------------------------------------
+# --- 6. Claude Code settings --------------------------------------------------
 # Deliberately copied, not stowed. Claude Code rewrites settings.json in place, so
 # a symlink here gets replaced by a regular file and the repo silently stops
 # tracking it - which is exactly what happened to the old repo's version. Copying
@@ -68,7 +80,7 @@ if [[ ! -f $CLAUDE_SETTINGS ]]; then
   install -m 644 "$DOTFILES/install/claude-settings.json" "$CLAUDE_SETTINGS"
 fi
 
-# --- 6. mise-managed toolchains ----------------------------------------------
+# --- 7. mise-managed toolchains ----------------------------------------------
 # mise itself comes from Omarchy, but its pins live in this repo
 # (home/.config/mise/config.toml) and nothing installs them automatically. Without
 # this, a rebuilt box has mise and no dotnet, java, node, gh or python.
@@ -77,7 +89,7 @@ if command -v mise >/dev/null && [[ -f "$HOME/.config/mise/config.toml" ]]; then
   mise install || echo "!! mise install failed" >&2
 fi
 
-# --- 7. Binaries with no Arch package ----------------------------------------
+# --- 8. Binaries with no Arch package ----------------------------------------
 # monarchmoney-cli ships as a GitHub release binary and is not in the repos or the
 # AUR, so packages.lst cannot express it. Fetched rather than committed: a 14M
 # binary does not belong in a dotfiles repo. Non-fatal, since a rebuild should not
@@ -113,7 +125,7 @@ if [[ ! -x "$HOME/.local/bin/monarch" ]]; then
   install_monarch || echo "    failed; install by hand from thedavidweng/monarchmoney-cli" >&2
 fi
 
-# --- 8. Omarchy shell plugins ------------------------------------------------
+# --- 9. Omarchy shell plugins ------------------------------------------------
 # Third-party bar plugins are git clones under ~/.config/omarchy/plugins, so they
 # cannot be stowed. Guarded on the target directory rather than trusting
 # `omarchy plugin add` to be idempotent: it has no existing-install check and
@@ -137,7 +149,7 @@ if command -v omarchy-plugin-add >/dev/null; then
   done
 fi
 
-# --- 9. Post-link steps ------------------------------------------------------
+# --- 10. Post-link steps ------------------------------------------------------
 # bat will not use the bundled custom theme until its cache is rebuilt.
 if command -v bat >/dev/null; then
   echo "==> Rebuilding bat cache"

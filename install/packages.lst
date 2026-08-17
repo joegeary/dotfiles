@@ -51,7 +51,6 @@ figlet         # banner text
 ccze           # log colouriser
 thefuck        # corrects the previous command
 wget           # curl is shipped; wget is not, and scripts still expect it
-nano           # fallback editor for anything that ignores $EDITOR
 
 # --- CLI: network / hardware diagnostics ---
 bind           # dig and friends; DDNS and DNS debugging

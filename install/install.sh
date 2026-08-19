@@ -149,7 +149,50 @@ if command -v omarchy-plugin-add >/dev/null; then
   done
 fi
 
-# --- 10. Post-link steps ------------------------------------------------------
+# --- 10. FortiVPN split-DNS hook ---------------------------------------------
+# openfortivpn registers ppp0's corporate DNS servers with systemd-resolved but
+# leaves the link a catch-all resolver with no routing domain, so *.sws.local
+# hits resolved's mDNS special-casing for .local and never resolves. This pppd
+# ip-up hook claims sws.local + 10.x reverse + oncoursesystems.com for the tunnel
+# and drops it as a default route - split DNS. Unlike the VPN's credential-bearing pieces (see
+# SERVICES.md) it holds no secrets, so the repo owns it. Root-owned, hence copied
+# with sudo rather than stowed; guarded on content so a no-op re-run stays quiet.
+PPP_HOOK=/etc/ppp/ip-up.d/50-sws-split-dns.sh
+if ! cmp -s "$DOTFILES/install/50-sws-split-dns.sh" "$PPP_HOOK"; then
+  echo "==> Installing FortiVPN split-DNS hook"
+  sudo install -m 755 "$DOTFILES/install/50-sws-split-dns.sh" "$PPP_HOOK"
+fi
+
+# Two keys make the split-DNS hook above work without hardcoding any resolvers:
+#   pppd-use-peerdns=1  pppd learns ppp0's servers from the tunnel and the stock
+#                       00-dns.sh hook applies them - servers stay dynamic.
+#   set-dns=0           openfortivpn's own DNS push runs *after* the ip-up hooks
+#                       and resets ppp0's search domains, wiping the split-DNS
+#                       setup on every connect. Off, the ordering is clean:
+#                       00-dns.sh sets servers, then 50-sws adds the domains.
+# The conf is root-owned mode 600, managed by the fortivpn Omarchy plugin, which
+# only rewrites host/port/username/password/trusted-cert - so these keys survive
+# its writes. sed -i / tee -a keep the file's owner and mode intact (plugin
+# requires 600 root). Only act once the VPN is configured.
+FORTIVPN_CONF=/etc/openfortivpn/omarchy.conf
+if sudo test -f "$FORTIVPN_CONF"; then
+  set_fortivpn_key() {
+    key=$1 val=$2
+    if sudo grep -qE "^[[:space:]]*$key[[:space:]]*=" "$FORTIVPN_CONF"; then
+      if ! sudo grep -qE "^[[:space:]]*$key[[:space:]]*=[[:space:]]*$val[[:space:]]*\$" "$FORTIVPN_CONF"; then
+        echo "==> Setting openfortivpn $key = $val"
+        sudo sed -i -E "s/^[[:space:]]*$key[[:space:]]*=.*/$key = $val/" "$FORTIVPN_CONF"
+      fi
+    else
+      echo "==> Setting openfortivpn $key = $val"
+      printf '%s = %s\n' "$key" "$val" | sudo tee -a "$FORTIVPN_CONF" >/dev/null
+    fi
+  }
+  set_fortivpn_key set-dns 0
+  set_fortivpn_key pppd-use-peerdns 1
+fi
+
+# --- 11. Post-link steps ------------------------------------------------------
 # bat will not use the bundled custom theme until its cache is rebuilt.
 if command -v bat >/dev/null; then
   echo "==> Rebuilding bat cache"

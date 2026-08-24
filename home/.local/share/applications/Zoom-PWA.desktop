@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Name=Zoom (PWA)
+Exec=omarchy-webapp-handler-zoom %u
+Terminal=false
+Type=Application
+Icon=zoom
+StartupNotify=true

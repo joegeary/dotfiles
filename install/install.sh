@@ -56,6 +56,33 @@ if [[ -f $GHOSTTYCONF ]] && ! grep -q 'overrides.conf' "$GHOSTTYCONF"; then
   printf '\n# Personal overrides, loaded last so they win. Managed in ~/dotfiles.\nconfig-file = ?"~/.config/ghostty/overrides.conf"\n' >>"$GHOSTTYCONF"
 fi
 
+# --- 4b. Screen sharing (xdph) ------------------------------------------------
+# Same pattern again: Omarchy owns ~/.config/hypr/xdph.conf (it seeds it from
+# /usr/share/omarchy/config/hypr/), so we append a delta rather than taking the
+# file over. hyprlang merges a repeated category, so a second screencopy block
+# is a clean way to add one key without rewriting Omarchy's.
+#
+# force_shm makes screencopy hand over SHM buffers instead of DMA-BUFs. Zoom
+# asks for a DMA-BUF with an Intel modifier it cannot render on reconnect, so
+# the first screenshare works and every one after it is a black screen. SHM
+# sidesteps the DMA negotiation entirely. The tradeoff is that this applies to
+# ALL screensharing and CPU-copies frames, so drop it if you ever need the GPU
+# path for high-res capture in OBS.
+XDPH_CONF="$HOME/.config/hypr/xdph.conf"
+if [[ -f $XDPH_CONF ]] && ! grep -q 'force_shm' "$XDPH_CONF"; then
+  echo "==> Adding force_shm to xdph.conf (fixes Zoom black screen on reshare)"
+  cat >>"$XDPH_CONF" <<'EOF'
+
+# Force SHM buffers for screencopy; fixes Zoom black screen on 2nd+ screenshare.
+# See install/SERVICES.md. Remove if you need the GPU path for high-res capture.
+screencopy {
+    force_shm = 1
+}
+EOF
+  echo "    restart the portal to pick it up, or just log out and back in:"
+  echo "      systemctl --user restart xdg-desktop-portal-hyprland"
+fi
+
 # --- 5. Symlinks -------------------------------------------------------------
 echo "==> Stowing home"
 stow -d "$DOTFILES" -t "$HOME" home
@@ -65,6 +92,17 @@ if [[ -d "$DOTFILES/hosts/$HOST" ]]; then
   stow -d "$DOTFILES/hosts" -t "$HOME" "$HOST"
 else
   echo "==> No host package for '$HOST' (skipping)"
+fi
+
+# Omarchy ships a Zoom PWA desktop entry that shadows the native Zoom package's
+# entry (same filename). Overwrite it with the native package's entry so the
+# native app appears in launchers; the PWA is still available as "Zoom (PWA)"
+# via the stowed Zoom-PWA.desktop.
+OMARCHY_ZOOM="$HOME/.local/share/applications/Zoom.desktop"
+NATIVE_ZOOM=/usr/share/applications/Zoom.desktop
+if [[ -f $OMARCHY_ZOOM && ! -L $OMARCHY_ZOOM && -f $NATIVE_ZOOM ]]; then
+  echo "==> Replacing omarchy Zoom PWA with native Zoom entry"
+  cp "$NATIVE_ZOOM" "$OMARCHY_ZOOM"
 fi
 
 # --- 6. Claude Code settings --------------------------------------------------

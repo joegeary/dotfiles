@@ -7,6 +7,18 @@ local omarchy_monitor_scale = "auto"
 hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = omarchy_monitor_scale })
 
+-- Known wart of the vertical offset below, worth writing down because it cost a
+-- long afternoon: Hyprland's XWayland advertises BOTH monitors at y=0 to X11
+-- clients regardless of their real vertical offset (verified against
+-- XRRGetMonitors, XRRGetCrtcInfo and XineramaQueryScreens, which agree with each
+-- other and disagree with `hyprctl monitors`). XWayland's screen is also the
+-- bounding box of all outputs, so a negative position here means X coordinates
+-- differ from Hyprland's by that offset. Neither detail is worth giving up a
+-- centered layout for: XWayland apps that misplace their own windows do so
+-- because of their own geometry math, not because of this. See
+-- ~/.local/bin/zoom-share-rescue, which measures the live offset rather than
+-- assuming one.
+
 -- Monitor A: DP-3 (Left, 2560x1440 @ 165Hz, Normal Orientation)
 -- Positioned at the top-left (0x0)
 hl.monitor({

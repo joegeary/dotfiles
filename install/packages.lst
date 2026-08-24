@@ -108,6 +108,7 @@ spotify        # music
 voxtype-bin    # dictation; installs its own voxtype.service user unit
 bolt-launcher  # RuneScape launcher
 zoom           # meetings
+ydotool        # uinput input injection; needed by zoom-share-rescue, see SERVICES.md
 gimp           # image editing
 onlyoffice-bin # documents
 etcher-bin     # write bootable USB images

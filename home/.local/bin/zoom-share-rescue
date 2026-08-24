@@ -1,0 +1,472 @@
+#!/usr/bin/env python3
+"""Recover Zoom's screen-share toolbar when it lands off-screen.
+
+Zoom types its share toolbar as _NET_WM_WINDOW_TYPE_TOOLTIP and makes it
+override-redirect, so it bypasses the window manager: every hyprctl dispatcher
+(move, pin, movetoworkspace, centerwindow) returns ok and does nothing, and no
+window rule applies. Worse, Hyprland renders such surfaces on top but leaves
+them out of pointer hit-testing, so clicks fall through to the topmost managed
+window or layer surface underneath. That makes the bar clickable only where
+nothing sits beneath it, which in practice is nowhere, since Zoom parks it right
+on top of its own main window.
+
+Moving it works (a raw X call is the only thing that does). Making it clickable
+does not: the input routing cannot be fixed from outside Hyprland, and that
+includes synthetic clicks, which move the real pointer and so lose to the same
+hit-test. Hiding the bar is therefore the practical answer, since a restored
+meeting window makes it redundant anyway.
+
+  align             park the bar and self-view so the bar can be clicked at
+                    all. Run once per share; bound to SUPER+SHIFT+Z.
+  toggle            map/unmap the bar. Bound to SUPER+Z.
+  hide / show       the two halves of toggle, when you want a specific state
+  fix               weaker than align: just pull anything hanging off the screen
+                    back inside its monitor, without arranging for clickability
+  list              show every Zoom X window with its true X geometry
+  move  <win> X Y   move a window to an absolute X-screen coordinate
+  click <win> dx dy click at an offset relative to a window's origin. Only lands
+                    where no other window sits under the cursor; see below.
+
+Clicking needs ydotool, because Hyprland's XWayland does not implement XTEST at
+all (XTestFakeMotionEvent does not even move the cursor). Be clear about what it
+buys, though: ydotool injects via uinput below the compositor, but it does so by
+moving the *real* pointer, so Hyprland still hit-tests normally and the click is
+still swallowed by any window under the bar. Measured, not assumed: clicking the
+bar over an empty workspace works, and over another app the bar does not react at
+all. So `click` automates a click you could already make by hand, it does not
+make an unreachable button reachable. Prefer `toggle`. Setup:
+
+    sudo pacman -S ydotool
+    systemctl --user enable --now ydotool     # a user unit named ydotool, not ydotoold
+
+ydotoold's virtual device is relative-only (EV_REL, no EV_ABS), so
+`mousemove --absolute` is emulated with one large relative delta and libinput
+runs its acceleration curve over it. Left alone that lands the pointer at
+roughly double the requested coordinates, so clicks miss. The fix is a flat
+accel profile for that one device, which lives in hypr/bindings.lua; without it
+this command is inaccurate.
+
+Coordinates are X-screen coordinates throughout. ydotool works in Hyprland's
+coordinate space, so click converts using the live offset between the two rather
+than assuming they match; `list` prints that offset.
+"""
+
+import ctypes
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+X11 = ctypes.cdll.LoadLibrary("libX11.so.6")
+X11.XOpenDisplay.restype = ctypes.c_void_p
+X11.XGetAtomName.restype = ctypes.c_char_p
+
+
+class XWindowAttributes(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.c_int), ("y", ctypes.c_int),
+        ("width", ctypes.c_int), ("height", ctypes.c_int),
+        ("border_width", ctypes.c_int), ("depth", ctypes.c_int),
+        ("visual", ctypes.c_void_p), ("root", ctypes.c_ulong),
+        ("c_class", ctypes.c_int), ("bit_gravity", ctypes.c_int),
+        ("win_gravity", ctypes.c_int), ("backing_store", ctypes.c_int),
+        ("backing_planes", ctypes.c_ulong), ("backing_pixel", ctypes.c_ulong),
+        ("save_under", ctypes.c_int), ("colormap", ctypes.c_ulong),
+        ("map_installed", ctypes.c_int), ("map_state", ctypes.c_int),
+        ("all_event_masks", ctypes.c_long), ("your_event_mask", ctypes.c_long),
+        ("do_not_propagate_mask", ctypes.c_long),
+        ("override_redirect", ctypes.c_int), ("screen", ctypes.c_void_p),
+    ]
+
+
+class XClassHint(ctypes.Structure):
+    _fields_ = [("res_name", ctypes.c_char_p), ("res_class", ctypes.c_char_p)]
+
+
+def open_display():
+    dpy = X11.XOpenDisplay(None)
+    if not dpy:
+        sys.exit("cannot open X display (is XWayland running?)")
+    return ctypes.c_void_p(dpy)
+
+
+def name_of(dpy, win):
+    p = ctypes.c_char_p()
+    if X11.XFetchName(dpy, ctypes.c_ulong(win), ctypes.byref(p)) and p.value:
+        return p.value.decode(errors="replace")
+    return ""
+
+
+def class_of(dpy, win):
+    ch = XClassHint()
+    if X11.XGetClassHint(dpy, ctypes.c_ulong(win), ctypes.byref(ch)):
+        return (ch.res_class or b"").decode()
+    return ""
+
+
+def tree(dpy, win, out=None):
+    """Every descendant of win, including override-redirect windows that
+    _NET_CLIENT_LIST and `hyprctl clients` both omit."""
+    if out is None:
+        out = []
+    root = ctypes.c_ulong()
+    parent = ctypes.c_ulong()
+    kids = ctypes.POINTER(ctypes.c_ulong)()
+    n = ctypes.c_uint(0)
+    if not X11.XQueryTree(dpy, ctypes.c_ulong(win), ctypes.byref(root),
+                          ctypes.byref(parent), ctypes.byref(kids), ctypes.byref(n)):
+        return out
+    for i in range(n.value):
+        out.append(kids[i])
+        tree(dpy, kids[i], out)
+    return out
+
+
+def zoom_windows(dpy):
+    root = X11.XDefaultRootWindow(dpy)
+    found = []
+    for win in tree(dpy, root):
+        nm, cls = name_of(dpy, win), class_of(dpy, win)
+        if "zoom" not in f"{nm} {cls}".lower() and not nm.startswith("as_"):
+            continue
+        attrs = XWindowAttributes()
+        if not X11.XGetWindowAttributes(dpy, ctypes.c_ulong(win), ctypes.byref(attrs)):
+            continue
+        found.append((win, nm, cls, attrs))
+    return found
+
+
+def monitors(dpy):
+    """What XRandR reports to X11 clients. Positions come straight from
+    Hyprland, so they can disagree with the X screen's own origin."""
+    try:
+        XRR = ctypes.cdll.LoadLibrary("libXrandr.so.2")
+    except OSError:
+        return []
+
+    class XRRMonitorInfo(ctypes.Structure):
+        _fields_ = [
+            ("name", ctypes.c_ulong), ("primary", ctypes.c_int),
+            ("automatic", ctypes.c_int), ("noutput", ctypes.c_int),
+            ("x", ctypes.c_int), ("y", ctypes.c_int),
+            ("width", ctypes.c_int), ("height", ctypes.c_int),
+            ("mwidth", ctypes.c_int), ("mheight", ctypes.c_int),
+            ("outputs", ctypes.POINTER(ctypes.c_ulong)),
+        ]
+
+    XRR.XRRGetMonitors.restype = ctypes.POINTER(XRRMonitorInfo)
+    root = X11.XDefaultRootWindow(dpy)
+    n = ctypes.c_int(0)
+    mons = XRR.XRRGetMonitors(dpy, ctypes.c_ulong(root), 1, ctypes.byref(n))
+    out = []
+    for i in range(n.value):
+        m = mons[i]
+        nm = X11.XGetAtomName(dpy, ctypes.c_ulong(m.name))
+        out.append((nm.decode() if nm else "?", m.x, m.y, m.width, m.height))
+    return out
+
+
+def hypr_offset(dpy=None):
+    """X coordinate minus Hyprland coordinate.
+
+    XWayland's screen is the bounding box of every output with its top-left at
+    (0,0), so the offset is just the negated minimum monitor origin. Derived
+    from the monitor layout rather than measured off a window: matching windows
+    by title picks up Zoom's several untitled 1x1 helper windows at the origin
+    and silently reports (0,0)."""
+    try:
+        mons = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"]))
+    except Exception:
+        return None
+    if not mons:
+        return None
+    return -min(m["x"] for m in mons), -min(m["y"] for m in mons)
+
+
+def monitor_rects_x(dpy=None):
+    """Monitor rectangles in X-screen coordinates, with their reserved insets.
+
+    hyprctl reports width/height as the panel's mode, not the rotated footprint,
+    so a 1920x1080 panel at transform 1/3/5/7 occupies 1080x1920 and the axes
+    have to be swapped. `reserved` is (left, top, right, bottom) and covers
+    exclusive zones like the omarchy bar."""
+    off = hypr_offset() or (0, 0)
+    try:
+        mons = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"]))
+    except Exception:
+        return []
+    out = []
+    for m in mons:
+        w, h = m["width"], m["height"]
+        if m.get("transform", 0) in (1, 3, 5, 7):
+            w, h = h, w
+        scale = m.get("scale") or 1
+        if scale and scale != 1:
+            w, h = int(w / scale), int(h / scale)
+        res = m.get("reserved") or [0, 0, 0, 0]
+        out.append({"name": m["name"], "x": m["x"] + off[0], "y": m["y"] + off[1],
+                    "w": w, "h": h, "reserved": tuple(res)})
+    return out
+
+
+def usable_rect(m):
+    """Monitor rect minus reserved space. Clamping to the raw monitor rect
+    instead of this is what tucks the bar underneath the omarchy bar."""
+    left, top, right, bottom = m["reserved"]
+    return (m["x"] + left, m["y"] + top,
+            m["w"] - left - right, m["h"] - top - bottom)
+
+
+def pick_monitor(mons, x, y, w, h):
+    """The monitor a rect belongs to: most overlap, falling back to nearest
+    centre when the rect is entirely off-screen and every overlap ties at 0."""
+    def overlap(m):
+        return (max(0, min(x + w, m["x"] + m["w"]) - max(x, m["x"]))
+                * max(0, min(y + h, m["y"] + m["h"]) - max(y, m["y"])))
+
+    best = max(mons, key=overlap)
+    if overlap(best) == 0:
+        cx, cy = x + w / 2, y + h / 2
+        best = min(mons, key=lambda m: (cx - (m["x"] + m["w"] / 2)) ** 2
+                                       + (cy - (m["y"] + m["h"] / 2)) ** 2)
+    return best
+
+
+def clamp_into(x, y, w, h, rect):
+    rx, ry, rw, rh = rect
+    return min(max(x, rx), rx + rw - w), min(max(y, ry), ry + rh - h)
+
+
+def cmd_fix(dpy):
+    targets = ("as_toolbar", "zoom_linux_float_video_window", "as_preview")
+    mons = monitor_rects_x()
+    if not mons:
+        sys.exit("could not read monitor layout")
+
+    found = False
+    for win, nm, _cls, a in zoom_windows(dpy):
+        if nm not in targets or a.map_state != 2:
+            continue
+        found = True
+        m = pick_monitor(mons, a.x, a.y, a.width, a.height)
+        nx, ny = clamp_into(a.x, a.y, a.width, a.height, usable_rect(m))
+        if (nx, ny) == (a.x, a.y):
+            print("  %-30s already fully on %s" % (nm, m["name"]))
+            continue
+        X11.XMoveWindow(dpy, ctypes.c_ulong(win), nx, ny)
+        X11.XFlush(dpy)
+        print("  %-30s (%d,%d) -> (%d,%d) on %s"
+              % (nm, a.x, a.y, nx, ny, m["name"]))
+
+    if not found:
+        print("no share-bar windows found; is a screen share running?")
+
+
+# Stop share sits about this far along the bar, measured off the rendered bar.
+# It is the button worth parking the self-view over.
+STOP_SHARE_FRAC = 0.65
+
+
+def cmd_align(dpy):
+    """Park the bar and self-view so the bar is actually reachable.
+
+    Hyprland never hit-tests the bar, so a click only lands if the pointer
+    arrives already held by another Zoom surface. Butting the self-view's bottom
+    edge against the bar's top edge creates exactly that path: start on the
+    self-view, slide straight down, and the pointer crosses nothing else on the
+    way. Aimed at Stop share, since that is the one people get stranded needing.
+    """
+    live = {}
+    for win, nm, _cls, a in zoom_windows(dpy):
+        if a.map_state == 2 and nm in ("as_toolbar",
+                                       "zoom_linux_float_video_window"):
+            live[nm] = (win, a)
+
+    if "as_toolbar" not in live:
+        print("no share bar present; is a screen share running?")
+        return
+
+    bwin, ba = live["as_toolbar"]
+    pv = live.get("zoom_linux_float_video_window")
+    pv_h = pv[1].height if pv else 0
+
+    mons = monitor_rects_x()
+    if not mons:
+        sys.exit("could not read monitor layout")
+    m = pick_monitor(mons, ba.x, ba.y, ba.width, ba.height)
+    usable = usable_rect(m)
+    ux, uy, uw, _uh = usable
+
+    # Leave the self-view's height clear above the bar.
+    bar_x, bar_y = clamp_into(ux + (uw - ba.width) // 2, uy + pv_h,
+                              ba.width, ba.height, usable)
+    X11.XMoveWindow(dpy, ctypes.c_ulong(bwin), bar_x, bar_y)
+    print("  as_toolbar  -> (%d,%d) on %s" % (bar_x, bar_y, m["name"]))
+
+    if not pv:
+        X11.XFlush(dpy)
+        print("  no self-view window found, so the bar will still be unclickable")
+        return
+
+    pwin, pa = pv
+    want_x = int(bar_x + ba.width * STOP_SHARE_FRAC - pa.width / 2)
+    px, py = clamp_into(want_x, bar_y - pa.height, pa.width, pa.height, usable)
+    X11.XMoveWindow(dpy, ctypes.c_ulong(pwin), px, py)
+    X11.XFlush(dpy)
+
+    flush = (py + pa.height == bar_y)
+    print("  self-view   -> (%d,%d)%s" % (px, py, "" if flush else "  (not flush)"))
+    print()
+    print("  Put the pointer on the self-view, then slide straight down onto")
+    print("  the bar. Stop share is directly beneath it.")
+
+
+BAR_WINDOWS = ("as_toolbar", "as_preview")
+
+
+def bar_windows(dpy):
+    return [(w, nm, a) for w, nm, _c, a in zoom_windows(dpy) if nm in BAR_WINDOWS]
+
+
+def cmd_toggle(dpy, force=None):
+    """Map or unmap the share bar.
+
+    Unmapping sidesteps the input problem entirely rather than fighting it: the
+    bar is unclickable wherever another window sits beneath it, so if the meeting
+    window is up the bar is only ever in the way. Zoom does not re-map it on its
+    own, and mapping it back restores it in place."""
+    wins = bar_windows(dpy)
+    if not wins:
+        print("no share bar present; is a screen share running?")
+        return
+
+    visible = any(a.map_state == 2 for _w, _n, a in wins)
+    hide = (not force == "show") if force is None else force == "hide"
+    if force is None:
+        hide = visible
+
+    for win, nm, _a in wins:
+        if hide:
+            X11.XUnmapWindow(dpy, ctypes.c_ulong(win))
+        else:
+            X11.XMapWindow(dpy, ctypes.c_ulong(win))
+    X11.XFlush(dpy)
+    print("share bar %s" % ("hidden" if hide else "shown"))
+
+    if not hide:
+        # Zoom recomputes the position when the bar is mapped, and its arithmetic
+        # is what put it off-screen to begin with, so clamp it straight away.
+        time.sleep(0.3)
+        cmd_fix(dpy)
+
+
+def cmd_list(dpy):
+    print("X screen: %d x %d" % (X11.XDisplayWidth(dpy, 0), X11.XDisplayHeight(dpy, 0)))
+
+    off = hypr_offset(dpy)
+    if off:
+        print("X coord = Hyprland coord + (%d, %d)" % off)
+        if off != (0, 0):
+            print("  ^ non-zero: XRandR's monitor positions below are shifted by")
+            print("    this much relative to the X screen, which is what makes")
+            print("    self-positioning X11 apps miss the monitor.")
+    print()
+
+    print("XRandR monitors as X11 clients see them:")
+    for nm, x, y, w, h in monitors(dpy):
+        print("  %-12s %dx%d at (%d,%d)" % (nm, w, h, x, y))
+    print()
+
+    print("Zoom X windows:")
+    for win, nm, cls, a in zoom_windows(dpy):
+        state = {0: "unmapped", 1: "unviewable", 2: "visible"}.get(a.map_state, "?")
+        tag = " OVERRIDE-REDIRECT (window manager cannot touch it)" if a.override_redirect else ""
+        print("  0x%-8x %-38s %dx%d at (%d,%d) %s%s"
+              % (win, repr(nm or cls or "?"), a.width, a.height, a.x, a.y, state, tag))
+
+
+def cmd_move(dpy, win, x, y):
+    X11.XMoveWindow(dpy, ctypes.c_ulong(win), x, y)
+    X11.XFlush(dpy)
+    print("moved 0x%x to X coordinate (%d,%d)" % (win, x, y))
+
+
+def cursor_pos():
+    """Hyprland's current cursor position, so a rescue click can put it back
+    instead of stranding it on whichever monitor the toolbar landed on."""
+    try:
+        out = subprocess.check_output(["hyprctl", "cursorpos"], text=True)
+        x, y = (int(v) for v in out.strip().split(","))
+        return x, y
+    except Exception:
+        return None
+
+
+def ydotool(*args):
+    # No socket path forced: ydotoold's default ($XDG_RUNTIME_DIR/.ydotool_socket)
+    # is what the packaged user unit produces, and honouring YDOTOOL_SOCKET from
+    # the environment lets a non-standard setup override it.
+    return subprocess.run(["ydotool", *args], capture_output=True, text=True)
+
+
+def cmd_click(dpy, win, dx, dy):
+    if not shutil.which("ydotool"):
+        sys.exit("ydotool not installed. XTEST is not an option here: Hyprland's\n"
+                 "XWayland ignores it entirely. Install with:\n"
+                 "    sudo pacman -S ydotool\n"
+                 "    systemctl --user enable --now ydotool")
+
+    attrs = XWindowAttributes()
+    if not X11.XGetWindowAttributes(dpy, ctypes.c_ulong(win), ctypes.byref(attrs)):
+        sys.exit("no such window 0x%x" % win)
+
+    # Target in X coordinates, then converted into Hyprland's space, which is
+    # what ydotool's absolute positioning operates in.
+    tx, ty = attrs.x + dx, attrs.y + dy
+    off = hypr_offset(dpy) or (0, 0)
+    hx, hy = tx - off[0], ty - off[1]
+
+    before = cursor_pos()
+
+    r = ydotool("mousemove", "--absolute", "-x", str(hx), "-y", str(hy))
+    if r.returncode != 0:
+        sys.exit("ydotool mousemove failed: %s\nIs ydotoold running? "
+                 "sudo systemctl status ydotoold" % (r.stderr or r.stdout).strip())
+    ydotool("click", "0xC0")  # 0xC0 = left button down then up
+
+    if before:
+        ydotool("mousemove", "--absolute", "-x", str(before[0]), "-y", str(before[1]))
+
+    print("clicked +%d+%d inside 0x%x" % (dx, dy, win))
+    print("  X coord        (%d,%d)" % (tx, ty))
+    print("  Hyprland coord (%d,%d)  [offset %+d%+d]" % (hx, hy, -off[0], -off[1]))
+
+
+def main():
+    argv = sys.argv[1:]
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__)
+        return
+    dpy = open_display()
+    cmd = argv[0]
+    if cmd == "list":
+        cmd_list(dpy)
+    elif cmd == "fix":
+        cmd_fix(dpy)
+    elif cmd == "align":
+        cmd_align(dpy)
+    elif cmd in ("toggle", "hide", "show"):
+        cmd_toggle(dpy, None if cmd == "toggle" else cmd)
+    elif cmd == "move" and len(argv) == 4:
+        cmd_move(dpy, int(argv[1], 16), int(argv[2]), int(argv[3]))
+    elif cmd == "click" and len(argv) == 4:
+        cmd_click(dpy, int(argv[1], 16), int(argv[2]), int(argv[3]))
+    else:
+        sys.exit(__doc__)
+    X11.XCloseDisplay(dpy)
+
+
+if __name__ == "__main__":
+    main()

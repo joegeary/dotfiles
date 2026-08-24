@@ -692,6 +692,36 @@ by hand and never live in this repo:
 The `openfortivpn` package is in [packages.lst](packages.lst). Note it is the
 open implementation, not Fortinet's own FortiClient.
 
+A third root-owned piece *does* live in the repo, because it holds no secrets:
+`install/50-sws-split-dns.sh`, installed to `/etc/ppp/ip-up.d/` by `install.sh`.
+openfortivpn hands `ppp0`'s corporate DNS servers to systemd-resolved but sets no
+routing domain and leaves the link a default resolver. Two things break: every
+`*.sws.local` lookup hits resolved's mDNS special-casing for `.local` (disabled
+here) and fails, and every *other* lookup also leaks to the corporate resolver.
+The `pppd` ip-up hook fixes both by claiming just `sws.local`, `10.x` reverse, and
+the `oncoursesystems.com` zone for the tunnel and dropping it as a default route -
+so only those go over the VPN:
+
+```sh
+resolvectl domain ppp0 sws.local '~10.in-addr.arpa' '~oncoursesystems.com'  # what goes over the tunnel
+resolvectl default-route ppp0 false                                          # not a catch-all resolver
+```
+
+`~oncoursesystems.com` is routing-only: `oncoursesystems.com` is a split-horizon
+zone, and the internal view (notably `devel.k8s.oncoursesystems.com` and
+`prod.k8s.oncoursesystems.com`, which point at the `10.7.1.200` / `10.10.137.200`
+Kubernetes control-plane VIPs) is served only by the corporate resolver. Without
+this route those names fall through to public DNS and resolve to Cloudflare-proxied
+IPs that never answer on the API port 6443, so `kubectl` just times out.
+
+Verify after connecting (should return an internal 10.x address):
+
+```sh
+resolvectl query oc-kermit.sws.local
+resolvectl query devel.k8s.oncoursesystems.com   # want: 10.7.1.200
+resolvectl status ppp0        # want: DNS Domain: sws.local ~10.in-addr.arpa ~oncoursesystems.com; Default Route: no
+```
+
 Connecting spawns a transient unit rather than a bare background process, which
 is also how you check it:
 

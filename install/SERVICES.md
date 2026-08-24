@@ -13,6 +13,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 - [Obsidian vault sync (Syncthing)](#obsidian-vault-sync-syncthing)
 - [Todo list sync (Syncthing)](#todo-list-sync-syncthing)
 - [GNOME keyring auto-unlock](#gnome-keyring-auto-unlock)
+- [Bluetooth headset (mic and output)](#bluetooth-headset-mic-and-output)
 - [Dynamic DNS](#dynamic-dns)
 - [Omarchy shell plugins](#omarchy-shell-plugins)
 - [Inbound SSH](#inbound-ssh)
@@ -407,6 +408,158 @@ busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
 > Note the D-Bus path escaping: `_` becomes `_5f`. Anything found there has to be
 > re-created in `login` (usually by re-authenticating the app) or it stays
 > unreachable.
+
+## Bluetooth headset (mic and output)
+
+A Bluetooth headset can run high fidelity stereo playback (A2DP) *or* its
+microphone (the HSP/HFP "headset" profile), never both at once. The mic profile
+is mono and narrowband, so turning the mic on drops playback to phone-call
+quality. That is a hard limit of the Bluetooth audio profiles, not a fault to
+fix - so the goal is only to make the switch automatic and get you talking *and*
+hearing on the headset, not to have good-sounding music *and* the mic together.
+
+A working call needs **both** the mic and the output pinned to the headset. They
+are two separate WirePlumber defaults (source and sink) with two separate pins,
+and each has the same "dangling phantom default" failure mode. Pinning only one
+leaves half the call dead: pin only the source and the app talks but you hear
+nothing; pin only the sink and you hear but no one hears you.
+
+WirePlumber does that switch on its own: it stays in A2DP for music and flips to
+HFP the moment an app opens the headset's mic, then flips back when the app lets
+go. That behaviour is one setting, `bluez5.autoswitch-profile = true`, in a
+stowed drop-in:
+
+```
+home/.config/wireplumber/wireplumber.conf.d/bluetooth-a2dp-autoconnect.conf
+```
+
+The same file lists the `hfp_hf`/`hsp_hs` roles under `bluez5.auto-connect`, so
+the mic link is established on connect. Without them an app cannot switch to the
+mic and the headset is not seen as an input at all until a full reconnect.
+
+> [!IMPORTANT]
+> This drop-in previously lived only on the machine, never in the repo, so a
+> rebuild lost it and the auto-switch silently stopped. It is stowed now. If the
+> headset mic ever "isn't working" after a rebuild, confirm this file is present
+> and symlinked before anything else.
+
+### Pinning the headset as the default mic - the part stow cannot do
+
+Auto-switching only fires when an app opens the *headset's* mic. Apps open
+whatever the system default source is, and when nothing is pinned WirePlumber
+chooses that default by a priority score - a contest the headset never wins.
+Measured priorities on this machine:
+
+| Source | `priority.session` |
+|--------|--------------------|
+| C922 webcam mic | 2109 |
+| Scarlett Solo | 2100 |
+| **WH-CH700N headset** | **2010** |
+| Onboard analog | 2009 |
+
+So a fresh session auto-selects the webcam as the mic, every app grabs that, and
+the headset mic is never opened - so the auto-switch never has a reason to fire
+and the headset looks like it "has no mic". The fix is to pin the headset as the
+configured default source explicitly. **The Omarchy Bluetooth widget cannot do
+this** - there is no default-mic setting in it. It is `wpctl` only:
+
+```sh
+# The node id changes every boot, so read it fresh. Either eyeball it:
+wpctl status            # under Sources, note the id next to "WH-CH700N"
+wpctl set-default <id>
+
+# ...or do it by name in one shot (substitute your headset's description):
+id=$(pw-dump | python3 -c "import json,sys; print(next(o['id'] for o in json.load(sys.stdin) if (o.get('info',{}).get('props') or {}).get('node.description')=='WH-CH700N'))")
+wpctl set-default "$id"
+```
+
+That writes `default.configured.audio.source` into
+`~/.local/state/wireplumber/default-nodes`. It is keyed by the device's node name
+(`bluez_input.<MAC>`), so it survives reboots and Bluetooth
+disconnect/reconnect - but it is **user state, not a config file, so it cannot be
+stowed and a rebuild loses it.** Redo the one command above, once, on each fresh
+install with the headset connected. That single command is the whole manual step;
+everything else is in the repo.
+
+The pin is **per headset**. Each Bluetooth mic is its own device with its own
+address, so bookmarking the Sony does nothing for a second headset - run the same
+command once for each, while that one is connected. WirePlumber keeps them as a
+fallback stack and uses whichever is currently connected:
+
+```
+default.configured.audio.source   = bluez_input.<pixel-buds-mac>   # first choice
+default.configured.audio.source.0 = bluez_input.<sony-mac>         # fallback
+```
+
+So once each headset has been pinned a single time, swapping between them just
+works - no re-pinning on every switch. Only a headset that has *never* been
+pinned, with the others disconnected, drops back to the priority score (the dead
+webcam), which is exactly the trap the pins exist to avoid. The auto-switch
+drop-in already covers every Bluetooth device (`~bluez_card.*`), so a new headset
+needs no config change, only its one-time pin.
+
+> [!NOTE]
+> Why this bites harder than it should: the C922 webcam's own mic is dead - it
+> streams digital silence at the hardware level with every ALSA control correct
+> (`Mic Capture Switch` on, gain maxed, stream running) - yet it still outranks
+> every other mic. So until the headset is pinned, every app auto-selects a dead
+> mic and no amount of Bluetooth fiddling helps. If that webcam is ever replaced,
+> the new one takes the top priority slot again, so the pin keeps earning its
+> keep.
+
+### Pinning the headset as the default output - the same trap on the other side
+
+Everything above is about the mic. The **output** needs the exact same treatment,
+and skipping it is what makes a call go silent even when the mic works perfectly:
+the app captures your voice from the headset, but its playback lands on whatever
+the default *sink* happens to be. If that default is a Bluetooth device that is
+not connected right now, output falls down the stack to the next sink - which on
+this machine is the Scarlett Solo, and the Scarlett is normally **muted**. Net
+result: full mic, zero sound, and nothing in the Bluetooth widget hints at why.
+
+That is not hypothetical - it is exactly how this broke. The **Pixel Buds** had
+been pinned as the default sink, they were disconnected, and every call's audio
+silently drained into the muted Scarlett. Pin the headset as the default sink,
+the same one-shot `wpctl` way as the source:
+
+```sh
+# eyeball it: under Sinks in `wpctl status`, note the id next to "WH-CH700N"
+wpctl status
+wpctl set-default <sink-id>
+
+# ...or by name in one shot (same node the mic pin uses, just the output side):
+id=$(pw-dump | python3 -c "import json,sys; print(next(o['id'] for o in json.load(sys.stdin) if (o.get('info',{}).get('props') or {}).get('node.description')=='WH-CH700N' and 'Sink' in (o.get('info',{}).get('props') or {}).get('media.class','')))")
+wpctl set-default "$id"
+```
+
+That writes `default.configured.audio.sink` into the same `default-nodes` state
+file. It is the identical deal as the source pin: **user state, not stowable**,
+redo it once per fresh install, and it is **per headset** with a fallback stack.
+
+The one extra wrinkle over the mic side: a sink pin has to be a device that is
+actually *connected* when it matters. A pinned-but-absent Bluetooth sink (the
+Pixel Buds) does not gracefully fall back to another Bluetooth headset that *is*
+connected - it drops to the next wired sink, which here is the muted Scarlett. So
+if you keep more than one Bluetooth output around, pin the one you actually wear
+for calls **last** (so it lands as the primary `default.configured.audio.sink`),
+and treat a call that is silent-but-otherwise-fine as this exact symptom: check
+`wpctl status` for a `*` sink that is not the headset, and re-pin.
+
+### Verifying
+
+```sh
+# what apps will grab as the mic - want the headset's bluez_input node
+wpctl inspect @DEFAULT_AUDIO_SOURCE@ | grep node.name
+
+# what apps will play into - want the headset's bluez_output node, NOT a phantom
+wpctl inspect @DEFAULT_AUDIO_SINK@ | grep node.name
+
+# auto-switch setting is live (find the bluez_card id in `wpctl status` first)
+wpctl inspect <bluez_card-id> | grep autoswitch    # want: bluez5.autoswitch-profile = true
+
+# prove the mic actually captures - peak/rms must be non-zero while talking
+pw-record --target @DEFAULT_AUDIO_SOURCE@ /tmp/mic.wav   # ctrl-c after a few seconds, then play it back
+```
 
 ## Dynamic DNS
 

@@ -62,6 +62,9 @@ smartmontools  # disk health
 dmidecode      # hardware inventory
 lsof           # open files; also an optional dep of remote-desktop-manager
 
+# --- Hardware firmware ---
+broadcom-bt-firmware-git  # BCM20702A1 BT firmware (sigint); headset mic dead without it
+
 # --- Kubernetes / cloud / certs -----------------------------------------------
 # Phase 2 restored the config for all of these (.kube/config, .talos/config,
 # .azure/, .cloudflared/, the mkcert root CA) and none of it could be tested

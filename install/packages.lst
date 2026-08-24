@@ -51,6 +51,8 @@ figlet         # banner text
 ccze           # log colouriser
 thefuck        # corrects the previous command
 wget           # curl is shipped; wget is not, and scripts still expect it
+tuxedo-git     # keyboard-driven terminal UI for todo.txt; reads ~/.todo/todo.txt.
+               # AUR ships only the -git build, no stable package.
 
 # --- CLI: network / hardware diagnostics ---
 bind           # dig and friends; DDNS and DNS debugging

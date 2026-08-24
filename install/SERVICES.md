@@ -11,6 +11,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 
 - [Tailscale](#tailscale)
 - [Obsidian vault sync (Syncthing)](#obsidian-vault-sync-syncthing)
+- [Todo list sync (Syncthing)](#todo-list-sync-syncthing)
 - [GNOME keyring auto-unlock](#gnome-keyring-auto-unlock)
 - [Dynamic DNS](#dynamic-dns)
 - [Omarchy shell plugins](#omarchy-shell-plugins)
@@ -248,6 +249,79 @@ not, so each device tries to load plugins it does not have and skips them
 harmlessly. Do not disable a plugin from the phone or laptop to silence it, that
 edits the shared list and disables it everywhere. Add
 `.obsidian/community-plugins.json` to `.stignore` instead.
+
+## Todo list sync (Syncthing)
+
+Syncs `~/.todo/todo.txt`, the todo.txt file that [tuxedo](https://github.com/webstonehq/tuxedo)
+reads (`tuxedo-git` in [packages.lst](packages.lst)), across the same three
+devices as the vault. It rides the existing peer mesh, so there is no new device
+pairing, only a new folder to add on each device.
+
+The folder ID is `todo` and must match on every device. It is a single small
+text file, so there are no ignore patterns to manage.
+
+### Linux setup (joining machine)
+
+Because the devices are already paired for the vault, the simplest path is to let
+one machine share the folder and accept it on the other. On the machine that
+already has the folder:
+
+```sh
+syncthing cli config folders todo devices add --device-id <peer-id>
+```
+
+Then on the joining machine, open the Web GUI (`http://localhost:8384`). A banner
+appears: *"Device <name> wants to share folder 'Todo' (todo)."* Click **Add**,
+which pre-fills the folder ID, set the path to `~/.todo`, and save. No device IDs
+to type. Set versioning under the folder's **Advanced > File Versioning** tab.
+
+The fully scripted equivalent, if you would rather not touch the GUI:
+
+```sh
+syncthing cli config folders add --id todo --label "Todo" --path ~/.todo
+
+# share back with the other two devices (IDs from `syncthing cli show system`)
+syncthing cli config folders todo devices add --device-id <peer-1-id>
+syncthing cli config folders todo devices add --device-id <peer-2-id>
+```
+
+Either way, enable the same 30 day staggered versioning as the vault, as a safety
+net under the conflict behaviour noted below. The CLI cannot set the params, so
+this goes through the REST API:
+
+```sh
+syncthing cli config folders todo versioning type set staggered
+
+CFG=~/.local/state/syncthing/config.xml
+APIKEY=$(grep -oP '(?<=<apikey>)[^<]+' "$CFG")
+curl -s -H "X-API-Key: $APIKEY" localhost:8384/rest/config/folders/todo \
+  | python3 -c "import json,sys; f=json.load(sys.stdin); f['versioning']={'type':'staggered','params':{'cleanInterval':'3600','maxAge':'2592000'},'cleanupIntervalS':3600,'fsPath':'','fsType':'basic'}; print(json.dumps(f))" \
+  | curl -s -X PUT -H "X-API-Key: $APIKEY" -H "Content-Type: application/json" \
+      -d @- localhost:8384/rest/config/folders/todo
+```
+
+> [!NOTE]
+> If `~/.todo` already holds a `todo.txt` on the joining machine, an identical
+> file merges silently, but a differing one produces a `*.sync-conflict-*` copy
+> rather than merging. On a fresh machine, leave `~/.todo` empty and let the
+> first sync populate it.
+
+### Android setup
+
+Add a folder with ID `todo` in Syncthing-Fork, using the directory picker for
+its path, type **Send & Receive**, shared with both Linux devices. Leave **File
+Versioning** set to None, as with the vault. The phone cannot run tuxedo, but any
+todo.txt app can read the synced file.
+
+### Conflicts
+
+todo.txt is one file, so simultaneous edits on two offline devices do not merge.
+Syncthing keeps both and writes a `*.sync-conflict-<date>-<device>.txt` beside
+the winner. Keep the one you want and delete the other:
+
+```sh
+find ~/.todo -name '*sync-conflict*'
+```
 
 ## GNOME keyring auto-unlock
 

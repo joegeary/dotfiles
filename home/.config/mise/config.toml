@@ -1,8 +1,9 @@
 [tools]
+aspire = "latest"
 claude = "latest"
 codex = "latest"
 dotnet = "latest"
 gh = "latest"
-java = "latest"
+java = "temurin-21"  # pinned <22 for Sencha Cmd
 node = "26.7.0"
 python = "latest"

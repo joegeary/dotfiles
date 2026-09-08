@@ -19,8 +19,8 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 - [Inbound SSH](#inbound-ssh)
 - [Herdr](#herdr)
 - [Zoom black screen on the second screenshare](#zoom-black-screen-on-the-second-screenshare)
-- [Zoom popups tiling instead of floating](#zoom-popups-tiling-instead-of-floating)
 - [Zoom screen-share toolbar](#zoom-screen-share-toolbar)
+- [Zoom notifications stealing focus](#zoom-notifications-stealing-focus)
 - [AI agent instructions](#ai-agent-instructions)
 
 ## Tailscale
@@ -894,110 +894,50 @@ systemctl --user restart xdg-desktop-portal-hyprland
 > ~25-30s activation timeout. Restarting it can freeze the session for half a
 > minute. Prefer logging out.
 
-## Zoom popups tiling instead of floating
-
-Switching audio devices mid-call (plugging in a bluetooth speaker, say) pops up a
-message reminder that tiles itself into the layout instead of floating as a
-popover, which shoves the real windows around. Same class of problem hits the
-annotate toolbar, and the emoji/giphy pickers vanish on focus loss.
-
-The rules live in `home/.config/hypr/bindings.lua`, carried over from the
-pre-Omarchy config where they were originally worked out. The audio popup is the
-awkward one to match: the main and meeting windows carry an `initial_title` of
-`Zoom Workplace` and `Meeting`, so matching `initial_title` of exactly `zoom`
-targets just the transient reminders.
-
-Unlike the screen-share toolbar below, every one of these is a *managed* window,
-which is why ordinary window rules work on them at all.
-
 ## Zoom screen-share toolbar
 
-Start a screen share in the native Zoom app and the meeting window collapses to a
-small floating toolbar. On this machine that toolbar used to land off-screen, and
-even once dragged into view it would not accept a click. Two unrelated bugs stack
-up to produce that.
+Start a screen share and the meeting window collapses to a small floating
+share-control toolbar. Running Zoom under native Wayland (`xwayland=false`, set
+by `install.sh`) makes this an ordinary managed window: it comes up titled
+`as_toolbar`, tiling into the layout and oversized, so `hypr/bindings.lua`
+floats it and pins it to its natural size.
 
-**It lands off-screen (Zoom's bug).** Zoom positions the bar at
-`monitor_x + (monitor_w - bar_w) / 2` but sources `monitor_x` and `monitor_w` from
-*different* monitors. With the portrait panel to the right of DP-3 that evaluates
-to `2560 + (2560 - 773) / 2 = 3453`, and a 773px bar from there runs to 4227 on an
-XWayland screen only 3640 wide. Running Zoom on DP-3 instead gives
-`0 + 893 = 893`, comfortably on screen, so **keeping Zoom on DP-3 sidesteps this
-half entirely**.
-
-**It will not accept a click (Hyprland's bug).** Zoom declares the bar
-`_NET_WM_WINDOW_TYPE_TOOLTIP` and makes it override-redirect. Hyprland renders
-such surfaces on top but leaves them out of pointer hit-testing, so clicks pass
-through to the topmost managed window or layer surface beneath. Since Zoom parks
-the bar directly over its own main window, every click is swallowed. It is
-clickable only where nothing sits underneath, which is normally just the few
-pixels of padding between the omarchy bar and where tiled windows begin.
-
-Symptom to recognise: the bar is clickable only if the pointer arrives over it
-*from* another Zoom window and never crosses a third-party window on the way. Let
-the cursor pass over anything else and the bar goes dead again. `SUPER + LMB`
-window-move also grabs the self-view instead of the bar.
-
-Everything that does not work, so it is not tried a fourth time:
-
-- Window rules never match it. It is override-redirect, so the window manager
-  never sees it.
-- Every `hyprctl` dispatcher (`movewindowpixel`, `movetoworkspace`, `pin`,
-  `centerwindow`) returns `ok` and does nothing to it.
-- `pin` actively makes things worse, leaving it stuck and still unclickable.
-- XTEST is not an option. Hyprland's XWayland does not implement it at all;
-  `XTestFakeMotionEvent` does not even move the cursor.
-- **ydotool does not fix the clicking.** It injects via uinput below the
-  compositor, but by moving the *real* pointer, so Hyprland hit-tests as usual
-  and the click is still swallowed. Verified both ways: over an empty workspace
-  the bar reacts, over another app it does not react at all.
-
-So the bar's input cannot be repaired from outside Hyprland. Two workarounds,
-one key each, both in `~/.local/bin/zoom-share-rescue`:
-
-**`SUPER + Z` toggles the bar** (`zoom-share-rescue toggle`). Unmapping an X
-window does not depend on input routing at all, so it is reliable where
-everything above fails, and Zoom does not map it back on its own. Restore the
-meeting window and the bar is redundant, so hide it and drive the meeting from
-the window like normal.
-
-**`SUPER + SHIFT + Z` makes the bar clickable** (`zoom-share-rescue align`). It
-butts the self-view's bottom edge against the bar's top edge and centres it over
-Stop share. The self-view is a *managed* window, so it takes pointer focus
-normally; entering the bar from it means the pointer arrives already held by a
-Zoom surface, which is the only way a click lands. Focus is sticky once acquired,
-so the other buttons are reachable by sliding along the bar. Run it once per
-share: Zoom remembers the bar's position within a session but re-places the
-self-view from scratch every time.
-
-Note the aim at Stop share uses a measured fraction of the bar's width, not
-anything Zoom reports, so a Zoom layout change would drift it. The flush edge
-still gets the pointer onto the bar either way.
-
-Both keys need Omarchy's cursor-magnifier bindings out of the way, which
-`hypr/bindings.lua` unbinds (`SUPER + CTRL + Z` and `SUPER + CTRL + ALT + Z`).
-
-Also there: `fix` (weaker than `align`, just pulls things back inside the usable
-area of their monitor), `list` (every Zoom X window with true geometry,
-override-redirect ones flagged), `move`, and `click`. `click` automates a click
-you could already make by hand; it does not make an unreachable button
-reachable.
-
-`ydotool` is in `packages.lst`. Its daemon is a **user** unit named `ydotool`,
-not a system `ydotoold`, and needs enabling once (no sudo; the shipped udev rule
-grants group `input` access to `/dev/uinput`):
-
-```bash
-systemctl --user enable --now ydotool
+```lua
+o.window({ class = "^(Zoom)$", initial_title = "^(as_toolbar)$" }, {
+  float = true,
+  size = { 772, 87 },
+})
 ```
 
-Its virtual pointer is relative-only (`EV=7`, no `EV_ABS`), so
-`mousemove --absolute` is emulated with one big relative delta that libinput then
-accelerates, landing at roughly double the requested coordinate. The flat
-`accel_profile` for `ydotoold-virtual-device-1` in `hypr/bindings.lua` is what
-makes the mapping 1:1. Verify with
-`ydotool mousemove --absolute -x 777 -y 333` and `hyprctl cursorpos`; it should
-report exactly `777, 333`.
+Under the old XWayland setup this was a long-running sore. Zoom declared the bar
+override-redirect, so Hyprland rendered it but never hit-tested it and clicks
+fell through, and it landed off-screen from a Zoom positioning bug. It took a
+`zoom-share-rescue` helper (its own `SUPER + Z` / `SUPER + SHIFT + Z` binds) plus
+`ydotool` and a flat-accel device rule to make it usable. Native Wayland drops
+every bit of that; the helper, the binds, the `ydotool` package and the device
+rule are all gone. Other transient Zoom surfaces (reactions picker, dialogs)
+float themselves under Wayland and need no rule.
+
+## Zoom notifications stealing focus
+
+On any notification (meeting reminder, chat ping, audio-device change) Zoom
+fires a window activation request. Omarchy sets `focus_on_activate = true`
+globally, so Hyprland obeys it and hops the active workspace over to Zoom,
+yanking you out of whatever you were doing. Scoping the option off for Zoom in
+`hypr/bindings.lua` stops it, the same pattern Omarchy uses for Telegram:
+
+```lua
+o.window({ class = "^(Zoom)$" }, {
+  focus_on_activate = false,
+})
+```
+
+That alone leaves Zoom silent, because native Wayland Zoom cannot draw its own
+floating notification toasts the way the XWayland build did. It has to emit
+desktop notifications instead, which are off by default, so `install.sh` sets
+`waylandDesktopNotifications=true` in `zoomus.conf`. Alerts then render as
+ordinary Hyprland toasts through the omarchy shell, without stealing focus. Zoom
+rewrites that file on exit, so the change only sticks while Zoom is closed.
 
 ## AI agent instructions
 

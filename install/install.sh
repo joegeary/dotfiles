@@ -83,6 +83,28 @@ EOF
   echo "      systemctl --user restart xdg-desktop-portal-hyprland"
 fi
 
+# --- 4c. Zoom native Wayland -------------------------------------------------
+# Zoom defaults to XWayland (xwayland=true in zoomus.conf). There its share
+# toolbar is an override-redirect window Hyprland cannot hit-test, which used to
+# need a pile of workarounds. Running Zoom natively (xwayland=false) makes the
+# toolbar a normal clickable window and drops all of that. Native Wayland Zoom
+# cannot spawn its own floating notification toasts, so it must also be told to
+# emit desktop notifications (waylandDesktopNotifications=true); otherwise it goes
+# silent and just yanks focus to its own window on every alert. Zoom rewrites this
+# file on exit, so it must be closed when this runs; the keys only appear after
+# Zoom's first launch, so a never-run Zoom is left for the next pass.
+ZOOM_CONF="$HOME/.config/zoomus.conf"
+if [[ -f $ZOOM_CONF ]]; then
+  if grep -q '^xwayland=true' "$ZOOM_CONF"; then
+    echo "==> Setting Zoom to native Wayland (xwayland=false in zoomus.conf)"
+    sed -i 's/^xwayland=true/xwayland=false/' "$ZOOM_CONF"
+  fi
+  if grep -q '^waylandDesktopNotifications=false' "$ZOOM_CONF"; then
+    echo "==> Enabling Zoom desktop notifications (waylandDesktopNotifications=true)"
+    sed -i 's/^waylandDesktopNotifications=false/waylandDesktopNotifications=true/' "$ZOOM_CONF"
+  fi
+fi
+
 # --- 5. Symlinks -------------------------------------------------------------
 echo "==> Stowing home"
 stow -d "$DOTFILES" -t "$HOME" home

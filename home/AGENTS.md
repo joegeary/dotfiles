@@ -1,5 +1,9 @@
 # Global agent instructions
 
+## PRIMARY RULE
+
+DO NOT GO OUTSIDE OF YOUR CWD WITHOUT EXPLICIT INSTRUCTIONS TO DO SO - DO NOT READ FROM MY PERSONAL HOME DIRECTORY UNLESS TOLD TO DO SO
+
 ## General Guidelines
 
 - Never use the em dash "—", use plain dash "-" instead.  Avoid using dashes at all in normal writing unless absolutely necessary, they are not typically used in the middle of sentences.
@@ -13,17 +17,14 @@
 - Do not give me time estimates on development. You are always wrong and it gives no value in terms of development costs.
 - Do not ask me to run sudo commands with the inline shell command (!) - sudo requires an interactive prompt to enter the password which you cannot handle
 
-## Opus 5 / Sonnet 5 Guidelines
+## Database Guidelines
 
-If you are Opus 5 or Sonnet 5 
-
-- Do not use redundant adjectives like "real" or "fake" - I don't want to see phrases like "this is the real gap"
-- Do not use phrases like "blast radius", "smoking gun", or any other grandiose terms that are pointless in context
-- Speak to me as if I am a project manager, removing all jargon terms, unless asked for additional detail 
+- There is no active "database" repo that contains source code. We code directly in a shared development db instance and promote code from there to other environments. Do not try to write .sql files or migrations for source control reasons.
+- Do not add quotes to the object names, our database is not case-sensitive so it just causes unneeded churn in our deployments.  Specifically seeing it in the create/alter line.
 
 ## MCP Guidelines
 
-- The "sqlcl" mcp has a known bug where if you have multiple sessions running concurrently, one will hang (you called it "wedged"). There is no known workaround, you should check for other running instances before running any sql in your session.
+- The "sqlcl" mcp has a known bug where if you have multiple sessions running concurrently, one will hang (you called it "wedged"). There is no known workaround, you should check for other instances actively running queries before running any sql in your session.
 
 ## Voice
 

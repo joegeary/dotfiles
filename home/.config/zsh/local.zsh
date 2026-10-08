@@ -11,6 +11,8 @@ export SPROMPT="zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]?"
 export WORDCHARS=${WORDCHARS//[\/]/}    # treat / as a word separator
 export GPG_TTY=$(tty)                   # required for gpg commit signing
 export PATH="$HOME/.dotnet/tools:$PATH"
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools"
 
 # Machine-local vars and secrets. Never committed; restored by hand.
 [[ -f ~/.zprofile ]] && source ~/.zprofile
@@ -42,6 +44,18 @@ command -v direnv >/dev/null && eval "$(direnv hook zsh)"
 
 # worktrunk, for the per-project worktree templates in ~/.config/worktrunk.
 command -v wt >/dev/null && eval "$(command wt config shell init zsh)"
+
+# leaf ships /usr/share/zsh/site-functions/_leaf, already on fpath, so by the
+# kubectl rule above this line should not need to exist. It does because that
+# file is written to be sourced, not autoloaded: it *defines* _leaf and then
+# calls `compdef _leaf leaf`. Autoloaded, the first Tab runs the outer body,
+# which only redefines _leaf and registers it, and completes nothing - you get
+# a beep, and only the second Tab completes. Sourcing it here runs the compdef
+# eagerly so the first Tab works. ~0.6ms, and it tracks whatever the package
+# ships rather than vendoring a patched copy. Drop it if upstream ever emits a
+# real autoload-style `#compdef` file. bash and fish are unaffected.
+[[ -f /usr/share/zsh/site-functions/_leaf ]] && \
+  source /usr/share/zsh/site-functions/_leaf
 
 # thefuck costs ~105ms to initialize, about as much as the whole rest of the
 # shell, so it is loaded on first use rather than at every startup.

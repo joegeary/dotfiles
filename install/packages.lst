@@ -32,6 +32,9 @@ git-delta      # diff pager; required by core.pager in overrides.gitconfig
 onefetch       # git repo stats; the repo/show_fetch functions in local.zsh are
                # defined only when it is present. Complements fastfetch (machine
                # stats), it does not replace it.
+leaf-markdown-viewer-bin  # terminal markdown viewer; AUR only. Config in
+               # home/.config/leaf. Its bash/fish/nushell completions work as
+               # shipped; the zsh one needs the workaround in local.zsh.
 
 # --- Services (see SERVICES.md) ---
 tailscale      # tailnet; every other service here addresses peers over it
@@ -114,3 +117,7 @@ etcher-bin     # write bootable USB images
 solaar         # Logitech device manager
 kdeconnect     # phone integration; paired-device keys restored separately
 libappindicator-gtk3  # tray icon support for remote-desktop-manager
+
+# --- Fonts ---
+maplemono-nf   # terminal font (Maple Mono NF); ghostty overrides.conf selects it.
+               # -nf = Nerd Font glyphs, non-CN English build.

@@ -15,9 +15,7 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = omarchy
 -- bounding box of all outputs, so a negative position here means X coordinates
 -- differ from Hyprland's by that offset. Neither detail is worth giving up a
 -- centered layout for: XWayland apps that misplace their own windows do so
--- because of their own geometry math, not because of this. See
--- ~/.local/bin/zoom-share-rescue, which measures the live offset rather than
--- assuming one.
+-- because of their own geometry math, not because of this.
 
 -- Monitor A: DP-3 (Left, 2560x1440 @ 165Hz, Normal Orientation)
 -- Positioned at the top-left (0x0)

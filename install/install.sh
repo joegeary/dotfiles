@@ -34,6 +34,30 @@ if ! grep -qF "$HOOK" "$HOME/.zshrc"; then
   printf '\n%s\n' "$HOOK" >>"$HOME/.zshrc"
 fi
 
+# Omarchy leaves the passwd login shell as bash and bridges to zsh with an
+# `exec zsh` at the top of ~/.bashrc. That bridge only covers the shell the
+# terminal itself spawns, so anything that spawns $SHELL as a subprocess gets
+# bash: herdr panes, tmux, IDE terminals, tools that shell out. Own the login
+# shell instead and the bridge stops mattering. sudo rather than a bare chsh so
+# a rebuild does not stop on a password prompt; the script already uses sudo.
+if [[ "$(getent passwd "$USER" | cut -d: -f7)" != /usr/bin/zsh ]] && [[ -x /usr/bin/zsh ]]; then
+  echo "==> Setting login shell to zsh"
+  sudo chsh -s /usr/bin/zsh "$USER"
+fi
+
+# Belt and suspenders for the bridge above, for any bash that is still spawned
+# interactively. Omarchy's stock guard requires ${SHLVL} == 1, which assumes bash
+# is the outermost shell. herdr 0.9.0 dropped --no-session, so its background
+# server - itself a child of the login zsh - hands panes SHLVL=1 already set;
+# bash bumps it to 2, the guard fails, and the pane keeps none of local.zsh. The
+# PPID and BASH_EXECUTION_STRING checks already cover what SHLVL was there for.
+# Matched on the trailing `]]` so the comment this leaves behind in ~/.bashrc,
+# which names the condition it removed, does not re-trigger the guard.
+if grep -qF '&& ${SHLVL} == 1 ]]' "$HOME/.bashrc" 2>/dev/null; then
+  echo "==> Dropping the SHLVL guard from ~/.bashrc's exec-zsh bridge"
+  sed -i 's/ && ${SHLVL} == 1//' "$HOME/.bashrc"
+fi
+
 # --- 3. Git --------------------------------------------------------------
 # Same pattern as the shell: Omarchy's ~/.config/git/config stays unmanaged
 # because it holds this machine's mise-pinned gh credential path and the user

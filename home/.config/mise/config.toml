@@ -2,8 +2,18 @@
 aspire = "latest"
 claude = "latest"
 codex = "latest"
+copilot = "latest"
 dotnet = "latest"
+gemini = { version = "latest", allow_builds = ["@github/keytar", "node-pty"] }
 gh = "latest"
 java = "temurin-21"  # pinned <22 for Sencha Cmd
 node = "26.7.0"
+opencode = "latest"
+pi = "latest"
 python = "latest"
+
+[settings]
+minimum_release_age_excludes = ["claude", "aqua:anthropics/claude-code"]
+
+[settings.upgrade]
+auto_prune = false

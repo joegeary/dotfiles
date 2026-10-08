@@ -329,88 +329,102 @@ find ~/.todo -name '*sync-conflict*'
 
 ## GNOME keyring auto-unlock
 
-Anything that stores a password in the Secret Service - browsers, the `gh` CLI,
-Bitwarden, the [DDNS updater](#dynamic-dns) - depends on the keyring being
-unlocked. Two separate defects stop that from happening on a stock install, and
-both are silent: things appear to work until a password prompt shows up, or an
-unattended timer fails because nothing is there to answer one.
+Anything that stores a password in the Secret Service (browsers, the `gh` CLI,
+Bitwarden, the [DDNS updater](#dynamic-dns)) depends on the keyring being
+unlocked.
 
 Neither `gnome-keyring` nor `libsecret` (for `secret-tool`) needs an entry in
-[packages.lst](packages.lst) - Omarchy installs both.
+[packages.lst](packages.lst). Omarchy installs both.
 
-### 1. PAM never captures the login password
+### How Omarchy expects it to work
 
-Arch's `/etc/pam.d/sddm` ships the `session` line for `pam_gnome_keyring.so` but
-**not** the `auth` line. The session line asks the daemon to start; only the auth
-line hands it the password typed at the greeter. Without it there is nothing to
-unlock with, so `login.keyring` stays locked for the whole session no matter what
-the passwords are.
+On an encrypted install there are two separate steps at boot, and only the first
+one asks for anything:
 
-Back the file up, then add the auth line directly after `auth include system-login`:
+1. The disk passphrase at the Plymouth prompt. It unlocks the LUKS volume and
+   nothing else.
+2. SDDM **autologin** (`/etc/pam.d/sddm-autologin`). It logs you in without a
+   password, so there is no password for `pam_gnome_keyring` to unlock with.
 
-```sh
-sudo cp /etc/pam.d/sddm /etc/pam.d/sddm.bak-$(date +%Y%m%d)
-```
+Omarchy handles that by keeping secrets in a keyring with **no password**.
+`/usr/share/omarchy/install/user/default-keyring.sh` creates `Default_keyring`
+without one and points the `default` alias at it. Full disk encryption protects
+it at rest. Omarchy's `install/login/sddm.sh` also deletes the
+`pam_gnome_keyring.so` auth line from `/etc/pam.d/sddm` on purpose, so a password
+login can't create a competing encrypted `login` keyring.
 
-```
-auth        include     system-login
--auth       optional    pam_gnome_keyring.so
-```
-
-The leading `-` means "skip quietly if the module is missing" and matches how the
-existing session line is written. Takes effect at the next login, not before.
-
-> [!NOTE]
-> This only auto-unlocks when the login password and the keyring password match.
-> A keyring carried over from another machine keeps *its* password, so if the two
-> differ you get one unlock prompt per session instead of silent failure. Change
-> the keyring password to match rather than re-creating it, or every secret in it
-> is lost.
-
-### 2. New secrets land in a keyring that never auto-unlocks
-
-`pam_gnome_keyring` unlocks exactly one keyring, `login`. But a fresh install
-creates `Default_keyring` and points the `default` alias at it, and the alias is
-what receives every newly stored secret. The result is a locked keyring
-accumulating live credentials.
-
-The symptom is easy to misread, because `secret-tool search` looks in *every*
-collection and happily returns attributes from locked ones. Check the alias and
-the lock state directly instead:
+The rule that follows: **every keyring that holds secrets must have an empty
+password.** A keyring with a password can never auto-unlock under autologin. The
+symptom is an "Authentication required: The login keyring did not get unlocked
+when you logged into your computer" dialog after every boot, and this in the
+journal:
 
 ```sh
-busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
-  org.freedesktop.Secret.Service ReadAlias s default        # want .../collection/login
-
-busctl --user get-property org.freedesktop.secrets \
-  /org/freedesktop/secrets/collection/login \
-  org.freedesktop.Secret.Collection Locked                  # want: b false
+journalctl -b | grep gkr-pam      # "couldn't unlock the login keyring"
 ```
 
-Repoint the alias through D-Bus rather than editing
-`~/.local/share/keyrings/default` by hand - the daemon reads that file only at
-startup, so `SetAlias` is what applies immediately (it writes the file too):
+> [!WARNING]
+> An earlier version of this section treated Omarchy's setup as two defects. It
+> added the `pam_gnome_keyring.so` auth line to `/etc/pam.d/sddm` and repointed
+> the `default` alias at the password protected `login` keyring. Under autologin
+> that produced the unlock dialog on every boot from August 2026 on. Do not
+> redo either change.
+
+Switching to systemd's LUKS unlock (`sd-encrypt` plus `pam_systemd_loadkey`) so
+the disk passphrase also unlocks a password protected keyring was considered and
+rejected. It replaces Omarchy's `encrypt` hook and kernel command line, and
+Omarchy's update migrations rewrite `/etc/default/limine` and rebuild the boot
+image assuming its own setup, so it would be at odds with every future update.
+
+### Removing a keyring password
+
+Use Seahorse ("Passwords and Keys"). It is only needed for this, so it is not in
+`packages.lst`.
 
 ```sh
-busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
-  org.freedesktop.Secret.Service SetAlias so \
-  default /org/freedesktop/secrets/collection/login
+sudo pacman -S seahorse
 ```
+
+Right-click the keyring, choose **Change Password**, enter the current password,
+leave the new one blank, and accept the warning about storing it unencrypted.
+The secrets stay where they are.
 
 > [!CAUTION]
-> Repointing the alias does not move secrets already written to the old keyring.
-> Enumerate it before assuming it is empty, because a locked collection can
-> report zero items:
->
-> ```sh
-> busctl --user get-property org.freedesktop.secrets \
->   /org/freedesktop/secrets/collection/Default_5fkeyring \
->   org.freedesktop.Secret.Collection Items
-> ```
->
-> Note the D-Bus path escaping: `_` becomes `_5f`. Anything found there has to be
-> re-created in `login` (usually by re-authenticating the app) or it stays
-> unreachable.
+> Do not script this through `busctl` with
+> `org.gnome.keyring.InternalUnsupportedGuiltRiddenInterface.ChangeWithPrompt`.
+> It segfaulted `gnome-keyring-daemon` 50.0 on this machine. systemd restarted
+> it and no secrets were lost, but use Seahorse.
+
+### Verifying
+
+Every collection should report `b false` right after login, without any dialog:
+
+```sh
+busctl --user call org.freedesktop.secrets /org/freedesktop/secrets \
+  org.freedesktop.Secret.Service ReadAlias s default
+
+for c in login Default_5fkeyring; do
+  busctl --user get-property org.freedesktop.secrets \
+    /org/freedesktop/secrets/collection/$c \
+    org.freedesktop.Secret.Collection Locked
+done
+```
+
+Note the D-Bus path escaping: `_` becomes `_5f`.
+
+### Current state on this machine
+
+- `login` (13 secrets) and `Default_keyring` (6 secrets) both have their
+  passwords removed. The `default` alias still points at `login`, left over from
+  the old fix. That is harmless now that both are passwordless, so it was left
+  alone rather than moving secrets between keyrings.
+- `/etc/pam.d/sddm` still carries the extra auth line from the old fix. It never
+  runs under autologin, but to match Omarchy again, restore the backup taken
+  before the change (it differs by exactly that one line):
+
+  ```sh
+  sudo cp /etc/pam.d/sddm.bak-20260816 /etc/pam.d/sddm
+  ```
 
 ## Bluetooth headset (mic and output)
 
@@ -563,6 +577,141 @@ wpctl inspect <bluez_card-id> | grep autoswitch    # want: bluez5.autoswitch-pro
 # prove the mic actually captures - peak/rms must be non-zero while talking
 pw-record --target @DEFAULT_AUDIO_SOURCE@ /tmp/mic.wav   # ctrl-c after a few seconds, then play it back
 ```
+
+### Zoom: use "Same as system" for both devices
+
+In Zoom's Settings > Audio, set both Speaker and Microphone to **Same as system**,
+not to the headset by name. Every A2DP/HFP switch replaces the headset's
+PipeWire nodes, and a device picked by name stays bound to the old node, so the
+second test or call goes silent. "Same as system" follows the default, which the
+pins above keep on the headset.
+
+The first few seconds of a call or mic test are silent while the headset
+switches from A2DP to HFP. That delay is the profile switch, not a fault.
+
+### Adapter firmware
+
+The USB adapter is a Broadcom BCM20702A1 (`0a5c:21e8`). It needs the patch file
+`brcm/BCM20702A1-0a5c-21e8.hcd`, or the HFP mic does not work. Confirm it loads
+on every boot:
+
+```sh
+journalctl -k -b | grep "BCM20702A1 'brcm/"     # want: ... '.hcd' Patch
+```
+
+`packages.lst` lists `broadcom-bt-firmware-git` for this, but on this machine the
+package is not installed. The working file was copied in by hand on 2026-08-17
+and no package owns it (`pacman -Qo` finds nothing). A rebuild has to install the
+package, or the patch is lost.
+
+### Keep the adapter on the CPU's USB controller
+
+The B550 board has two USB host controllers: the AMD 500 Series chipset
+controller and the CPU's own Matisse controller. On the chipset controller, the
+adapter hard-locked a CPU core inside the Bluetooth driver while it was tearing
+down a call link (`Workqueue: events btusb_work`, stuck in `xhci_urb_dequeue`).
+Every other core then stalled behind it, and the desktop froze for about 25
+seconds. The kernel logged it on 2026-08-22 and on 2026-10-06, the second time
+right as the headset reconnected. The same chipset controller also loses power on
+every resume from suspend (`xHC error in resume ... Reinit`).
+
+The adapter now sits in the port the keyboard used, which is on the CPU
+controller. The keyboard moved to the chipset controller, where it does no harm.
+Check which controller it is on:
+
+```sh
+readlink -f /sys/class/bluetooth/hci0/device    # note the 0000:xx:00.x controller
+lspci -s <xx:00.x>                              # want "Matisse USB 3.0 Host Controller"
+```
+
+If it reports "500 Series Chipset USB 3.1 XHCI Controller", move it to a port
+next to the Scarlett or the keyboard and check again.
+
+### Calls die after the first one: kernel and WirePlumber are pinned
+
+**Symptom:** the first call after boot works. Afterwards the headset mic and
+speaker are dead in every app until a reboot or a headset reconnect.
+
+**Log signature:** an HFP transport failure. HFP transports end in `/fdNN`;
+A2DP ones contain `/sepN/`.
+
+```sh
+journalctl -b | grep 'Failure in Bluetooth audio transport'
+# bad:  .../dev_<MAC>/fd80     (HFP call link)
+```
+
+PipeWire 1.6.8 counts these failures per transport and does not reset the count
+after a successful call, so once it reaches its retry limit every later attempt
+fails until the headset reconnects. The upstream fix is "bluez5: reset the
+transport error count on a successful acquire". It is not in Arch's PipeWire as
+of 2026-10-06.
+
+> [!NOTE]
+> `Bluetooth: hci0: SCO packet for unknown connection handle 6` in the kernel log
+> is **harmless**. This adapter keeps sending a few audio packets after every
+> call link closes. It appears at the end of every call, including on days when
+> every call worked. Do not chase it.
+
+The failures started on 2026-09-29, the first reboot after the 2026-09-16 update.
+That reboot made `linux-omarchy` 7.2.5 and WirePlumber 0.5.17 live at the same
+time. PipeWire (1.6.8) and BlueZ (5.87) had not changed since install. Tested on
+2026-10-06:
+
+| Kernel | WirePlumber | Zoom | Result |
+|--------|-------------|------|--------|
+| `linux-omarchy` 7.2.5 | 0.5.17 | 7.2.1 | fails |
+| `linux` 7.1.9 | 0.5.17 | 7.2.1 | fails |
+| `linux` 7.1.9 | 0.5.17 | 7.1.5 | fails |
+| `linux` 7.1.8 | 0.5.15 | 7.1.5, then 7.2.1 | **much better**: a full meeting and the mic tests worked, one HFP failure logged (12:56:56) |
+
+Ruled out along the way: the Zoom version (7.1.5 also crashed its webview and
+segfaulted on quit, so stay on current Zoom), disabling mSBC (same failures, only
+worse call quality), and the Omarchy kernel's build options (its Bluetooth and
+USB config matches stock Arch 7.2.3, so if the kernel is at fault the bug is
+upstream, not in Omarchy's build).
+
+**Current state:** booted on stock `linux` 7.1.8 with WirePlumber 0.5.15, held
+back in `/etc/pacman.conf`:
+
+```
+IgnorePkg = linux wireplumber libwireplumber
+```
+
+Both came from the Arch Linux Archive:
+
+```sh
+sudo pacman -U \
+  https://archive.archlinux.org/packages/w/wireplumber/wireplumber-0.5.15-1-x86_64.pkg.tar.zst \
+  https://archive.archlinux.org/packages/l/libwireplumber/libwireplumber-0.5.15-1-x86_64.pkg.tar.zst \
+  https://archive.archlinux.org/packages/l/linux/linux-7.1.8.arch1-3-x86_64.pkg.tar.zst
+```
+
+> [!IMPORTANT]
+> Limine's `BOOT_ORDER` puts `linux-omarchy` first, so the **default boot entry
+> is still the 7.2.5 Omarchy kernel**. Pick plain `linux` in the boot menu on
+> every boot until this is resolved. `uname -r` should print `7.1.8-arch1-3`.
+
+The pinned kernel gets no security updates, so this is meant to be short-lived.
+
+On the first boot of this setup, Zoom showed no mic input even though PipeWire
+was delivering the headset audio to Zoom's input stream (verified by recording
+Zoom's stream monitor port). After a reboot it worked. The cause is unknown.
+
+**Still open:**
+
+1. Confirm the pinned setup really fixes it. Watch for `/fdNN` transport
+   failures, and check that the next call after one still works. If calls die
+   again after a failure, the pins are not the fix, and the PipeWire error count
+   fix is what is needed.
+2. Find which of the two caused it. Boot the default `linux-omarchy` entry while
+   WirePlumber stays at 0.5.15, then do two calls back to back. If both work,
+   WirePlumber 0.5.17 is the culprit: drop `linux` from `IgnorePkg` and go back
+   to the Omarchy kernel. If the second fails, the kernel is.
+3. Report the culprit upstream with the logs, then lift the pin once a fixed
+   release lands.
+4. To lift it: remove the `IgnorePkg` line, run `sudo pacman -Syu`, reboot, do
+   two calls back to back, and check that no `/fdNN` transport failures were
+   logged.
 
 ## Dynamic DNS
 

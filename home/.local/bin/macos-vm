@@ -1,0 +1,121 @@
+#!/bin/bash
+set -euo pipefail
+
+COMPOSE_FILE="$HOME/.config/macos-vm/compose.yml"
+PORT=8007
+LOCAL_URL="http://127.0.0.1:$PORT"
+
+usage() {
+  cat <<USAGE
+Usage: macos-vm <command>
+
+Commands:
+  start    Start the VM and share its web viewer over the tailnet
+  stop     Stop the tailnet share and shut the VM down
+  status   Show the container state, tailnet share and URLs
+  logs     Follow the container logs (extra args go to docker logs)
+  open     Open the web viewer in the browser
+  help     Show this help
+USAGE
+}
+
+# The web login reuses the Windows VM's credentials, so one login covers both.
+CREDENTIALS_FILE="$HOME/.config/windows/credentials"
+
+compose() {
+  docker compose -p macos-vm -f "$COMPOSE_FILE" "$@"
+}
+
+load_credentials() {
+  local key value
+  [[ -r $CREDENTIALS_FILE ]] || return 1
+  while IFS='=' read -r key value; do
+    case $key in
+      USERNAME) export MACOS_VM_USER=$value ;;
+      PASSWORD) export MACOS_VM_PASSWORD=$value ;;
+    esac
+  done <"$CREDENTIALS_FILE"
+  [[ -n ${MACOS_VM_USER:-} && -n ${MACOS_VM_PASSWORD:-} ]]
+}
+
+tailnet_url() {
+  local state dns
+  state=$(tailscale status --json 2>/dev/null | jq -r '.BackendState') || return 1
+  [[ $state == Running ]] || return 1
+  dns=$(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\.$//')
+  echo "https://$dns:$PORT"
+}
+
+container_state() {
+  local state
+  state=$(docker inspect -f '{{.State.Status}}' macos-vm 2>/dev/null) || state=absent
+  echo "$state"
+}
+
+serve_active() {
+  tailscale serve status --json 2>/dev/null | jq -e --arg port "$PORT" '.TCP[$port] != null' >/dev/null
+}
+
+print_urls() {
+  local url
+  echo "Local:   $LOCAL_URL"
+  if url=$(tailnet_url); then
+    echo "Tailnet: $url"
+  fi
+}
+
+start() {
+  # Without credentials the image falls back to a well-known default login.
+  load_credentials || {
+    echo "macos-vm: no USERNAME and PASSWORD in $CREDENTIALS_FILE, run 'omarchy-windows-vm install' first" >&2
+    exit 1
+  }
+  mkdir -p "$HOME/.macos" "$HOME/macOS"
+  chmod 700 "$HOME/.macos" "$HOME/macOS"
+  compose up -d
+
+  local i
+  for ((i = 0; i < 60; i++)); do
+    curl -s -o /dev/null --max-time 2 "$LOCAL_URL" && break
+    sleep 1
+  done
+  if ((i == 60)); then
+    echo "macos-vm: web viewer did not answer on $LOCAL_URL within 60s, see 'macos-vm logs'" >&2
+    exit 1
+  fi
+
+  if tailnet_url >/dev/null; then
+    tailscale serve --bg --https="$PORT" "$LOCAL_URL" >/dev/null ||
+      echo "macos-vm: tailscale serve failed, local access only" >&2
+  else
+    echo "macos-vm: tailscale is not running, local access only" >&2
+  fi
+
+  print_urls
+  echo "Login:   $MACOS_VM_USER and the Windows VM password"
+}
+
+stop() {
+  tailscale serve --https="$PORT" off >/dev/null 2>&1 || true
+  compose down
+}
+
+status() {
+  echo "Container: $(container_state)"
+  if serve_active; then
+    echo "Tailnet share: on"
+  else
+    echo "Tailnet share: off"
+  fi
+  print_urls
+}
+
+case "${1:-help}" in
+  start) start ;;
+  stop) stop ;;
+  status) status ;;
+  logs) shift && docker logs -f "$@" macos-vm ;;
+  open) xdg-open "$LOCAL_URL" ;;
+  help | -h | --help) usage ;;
+  *) usage >&2 && exit 1 ;;
+esac

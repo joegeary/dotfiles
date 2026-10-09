@@ -22,6 +22,7 @@ handled by `stow` alone. See [INSTALL_ARCH.md](INSTALL_ARCH.md) for the base OS 
 - [Zoom screen-share toolbar](#zoom-screen-share-toolbar)
 - [Zoom notifications stealing focus](#zoom-notifications-stealing-focus)
 - [AI agent instructions](#ai-agent-instructions)
+- [macOS VM](#macos-vm)
 
 ## Tailscale
 
@@ -1132,3 +1133,55 @@ header documents small details like padding with U+00A0 instead of spaces
 (Claude Code collapses runs of ordinary spaces) and reproducing JavaScript's
 `toFixed` rounding. Those details are the reason it looks right; changing them
 changes the output.
+
+## macOS VM
+
+A macOS Sequoia VM in Docker, using the [dockur/macos](https://github.com/dockur/macos)
+image. It is the macOS sibling of Omarchy's `omarchy-windows-vm`, but needs no
+root: the user is in the `docker` group. Its config is
+`.config/macos-vm/compose.yml` and the `macos-vm` command drives it:
+
+```sh
+macos-vm start     # start the VM and share the web viewer over the tailnet
+macos-vm stop      # remove that share and shut the VM down
+macos-vm status    # container state, share state and URLs
+macos-vm logs      # follow the container logs
+macos-vm open      # open the web viewer locally
+```
+
+The VM is reached through its noVNC web viewer. Docker publishes it on
+`127.0.0.1:8007` only, never on the LAN. Port 8006 belongs to the Windows VM.
+`start` adds a `tailscale serve` mapping, so other tailnet devices reach it at
+`https://<host>.<tailnet>.ts.net:8007`. `stop` removes only that mapping and
+leaves any other serve config alone. VNC on 5900 is not published at all.
+
+The viewer sits behind nginx basic auth (`PROTECT=Y`) using the same username
+and password as the Windows VM. `start` reads them from
+`~/.config/windows/credentials`, the private copy `omarchy-windows-vm install`
+writes, and refuses to start without them. Nothing is stored in this repo.
+Create the macOS account during setup with that same username and password,
+and one login covers both VMs and both web viewers.
+
+> [!CAUTION]
+> Never write runtime files or secrets under `~/.config/macos-vm`. Stow folds it
+> into a symlink to this repo, and this repo is public.
+
+The disk image lives in `~/.macos`. The 128G disk is sparse, so it only uses
+what the guest writes.
+
+### First boot install
+
+1. Choose Disk Utility.
+2. Erase the largest disk, "Apple Inc. VirtIO Block Media", as APFS.
+3. Quit Disk Utility and choose Reinstall macOS.
+
+On AMD the guest must not get more than 8G of RAM during the install, so
+`RAM_SIZE` is `8G`. It can go higher in `compose.yml` once macOS is installed.
+
+### Sharing files
+
+`~/macOS` on the host is shared with the guest. Mount it inside macOS with:
+
+```sh
+sudo -S mount_9p shared
+```

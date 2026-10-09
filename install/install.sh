@@ -283,6 +283,13 @@ if command -v bat >/dev/null; then
   bat cache --build >/dev/null
 fi
 
+# The SUPER+A toggle only works with the wayscriber daemon running.
+if systemctl --user cat wayscriber.service &>/dev/null &&
+  ! systemctl --user is-enabled --quiet wayscriber.service; then
+  echo "==> Enabling wayscriber daemon"
+  systemctl --user enable --now wayscriber.service
+fi
+
 echo
 echo "Done. Open a new terminal for zsh to take effect."
 echo "See install/SERVICES.md for setup that stow cannot do."

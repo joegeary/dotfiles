@@ -40,6 +40,12 @@ home/.config/k9s/config.yaml
 home/.config/leaf/*
 !home/.config/leaf/config.toml
 
+# wayscriber writes a timestamped .bak beside config.toml every time a shortcut
+# is recorded, and ~/.config/wayscriber is a folded symlink into this repo.
+# Track config.toml only.
+home/.config/wayscriber/*
+!home/.config/wayscriber/config.toml
+
 # OpenLogi keeps lock files, overlay.claim and rotating config.toml.backup.N
 # copies beside its config. ~/.config/openlogi is a folded symlink into this
 # repo because the app saves by atomic rename, which would replace a symlinked

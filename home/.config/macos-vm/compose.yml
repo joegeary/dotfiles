@@ -1,0 +1,26 @@
+# AMD hosts must not give the guest more than 8G during install, and host port
+# 8006 belongs to the Windows VM, so the web viewer is on 8007.
+services:
+  macos:
+    image: dockurr/macos
+    container_name: macos-vm
+    environment:
+      VERSION: "15"
+      RAM_SIZE: "8G"
+      CPU_CORES: "4"
+      DISK_SIZE: "128G"
+      PROTECT: "Y"
+      USERNAME: "${MACOS_VM_USER:-}"
+      PASSWORD: "${MACOS_VM_PASSWORD:-}"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 127.0.0.1:8007:8006
+    volumes:
+      - ${HOME}/.macos:/storage
+      - ${HOME}/macOS:/shared
+    restart: "no"
+    stop_grace_period: 2m

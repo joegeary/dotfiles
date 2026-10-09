@@ -8,6 +8,8 @@ o.bind("SUPER + Q", "Close window", hl.dsp.window.close())
 hl.unbind("SUPER + P")
 o.bind("SUPER + P", "Screenshot", "omarchy-capture-screenshot")
 
+o.bind("SUPER + A", "Toggle Wayscriber", "wayscriber --daemon-toggle")
+
 -- --- Zoom window rules ------------------------------------------------------
 -- Native Wayland Zoom (zoomus.conf xwayland=false). Its share-control toolbar
 -- comes up as a managed window titled "as_toolbar" that tiles into the layout
